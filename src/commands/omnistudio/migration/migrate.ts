@@ -267,7 +267,7 @@ export default class Migrate extends OmniStudioBaseCommand {
   private async getProjectPath(relatedObjects: string, projectPath: string): Promise<string> {
     const projectPathConfirmation = await Logger.confirm(
       `Do you have a sfdc project where ${relatedObjects} files are already retrieved from org - y\n` +
-      'or you want tool to create a project omnistudio_migration in current directory for processing - n ? [y/n]'
+        'or you want tool to create a project omnistudio_migration in current directory for processing - n ? [y/n]'
     );
     if (projectPathConfirmation) {
       Logger.info('User consented to proceed');

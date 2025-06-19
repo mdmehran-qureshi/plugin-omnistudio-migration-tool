@@ -187,15 +187,7 @@ export default class Assess extends OmniStudioBaseCommand {
     exportType: OmniScriptExportType
   ): Promise<void> {
     Logger.logVerbose('OmniScript and Integration Procedure Assessment');
-    const osMigrator = new OmniScriptMigrationTool(
-      exportType,
-      namespace,
-      conn,
-      Logger,
-      messages,
-      this.ux,
-      allVersions
-    );
+    const osMigrator = new OmniScriptMigrationTool(exportType, namespace, conn, Logger, messages, this.ux, allVersions);
     assesmentInfo.omniAssessmentInfo = await osMigrator.assess(
       assesmentInfo.dataRaptorAssessmentInfos,
       assesmentInfo.flexCardAssessmentInfos

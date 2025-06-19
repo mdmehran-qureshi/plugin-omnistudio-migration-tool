@@ -10,6 +10,7 @@ import { OmniScriptMigrationTool } from '../../../../migration/omniscript';
 import OmnistudioRelatedObjectMigrationFacade from '../../../../migration/related/OmnistudioRelatedObjectMigrationFacade';
 import { OrgUtils } from '../../../../utils/orgUtils';
 import { OmnistudioOrgDetails } from '../../../../utils/orgUtils';
+import { Constants } from '../../../../utils/constants/stringContants';
 
 // Helper function to normalize paths for comparison
 
@@ -19,18 +20,17 @@ describe('omnistudio:migration:assess', () => {
 
   // Mock org details
   const mockOrgDetailsStandardModel: OmnistudioOrgDetails = {
-    packageDetails: [
-      {
-        version: '1.0.0',
-        namespace: 'vlocity_ins',
-      },
-    ],
+    packageDetails: {
+      version: '1.0.0',
+      namespace: 'vlocity_ins',
+    },
     omniStudioOrgPermissionEnabled: false,
     orgDetails: {
       Name: 'Test Org',
       Id: '00D000000000001',
     },
     dataModel: 'Standard',
+    hasValidNamespace: true,
   };
 
   // Sample data for DataRaptor assessment
@@ -187,8 +187,8 @@ describe('omnistudio:migration:assess', () => {
     stubMethod(sandbox, OmnistudioRelatedObjectMigrationFacade.prototype, 'assessAll').callsFake(
       (relatedObjects: string[]) => {
         const result = {
-          apexAssessmentInfos: relatedObjects.includes('apex') ? sampleApexAssessment : [],
-          lwcAssessmentInfos: relatedObjects.includes('lwc') ? sampleLwcAssessment : [],
+          apexAssessmentInfos: relatedObjects.includes(Constants.Apex) ? sampleApexAssessment : [],
+          lwcAssessmentInfos: relatedObjects.includes(Constants.LWC) ? sampleLwcAssessment : [],
         };
         return result;
       }
@@ -246,7 +246,7 @@ describe('omnistudio:migration:assess', () => {
     .withOrg({ username: 'test@org.com' }, true)
     .stdout()
     .stderr()
-    .command(['omnistudio:migration:assess', '-o', 'dr'])
+    .command(['omnistudio:migration:assess', '-o', Constants.DataMapper])
     .it('generates assessment files with content only for DataRaptor components', () => {
       const dataRaptorContent = fs.readFileSync(
         path.join(process.cwd(), 'assessment_reports/datamapper_assessment.html'),
@@ -255,117 +255,59 @@ describe('omnistudio:migration:assess', () => {
       expect(dataRaptorContent).to.include('DR_Test_Extract');
       expect(dataRaptorContent).to.include('DR_Test_Transform');
 
-      const flexCardContent = fs.readFileSync(
-        path.join(process.cwd(), 'assessment_reports/flexcard_assessment.html'),
-        'utf8'
-      );
-      expect(flexCardContent).to.not.include('FC_Test_Card');
-      expect(flexCardContent).to.not.include('FC_Test_Form');
-
-      const omniScriptContent = fs.readFileSync(
-        path.join(process.cwd(), 'assessment_reports/omniscript_assessment.html'),
-        'utf8'
-      );
-      expect(omniScriptContent).to.not.include('OS_Test_Script');
-
-      const ipContent = fs.readFileSync(
-        path.join(process.cwd(), 'assessment_reports/integration_procedure_assessment.html'),
-        'utf8'
-      );
-      expect(ipContent).to.not.include('IP_Test_Procedure');
+      void expect(fs.existsSync(path.join(process.cwd(), 'assessment_reports/flexcard_assessment.html'))).to.be.false;
+      void expect(fs.existsSync(path.join(process.cwd(), 'assessment_reports/omniscript_assessment.html'))).to.be.false;
+      void expect(fs.existsSync(path.join(process.cwd(), 'assessment_reports/integration_procedure_assessment.html')))
+        .to.be.false;
     });
 
   test
     .withOrg({ username: 'test@org.com' }, true)
     .stdout()
     .stderr()
-    .command(['omnistudio:migration:assess', '-o', 'fc'])
+    .command(['omnistudio:migration:assess', '-o', Constants.Flexcard])
     .it('generates assessment files with content only for FlexCard components', () => {
-      const dataRaptorContent = fs.readFileSync(
-        path.join(process.cwd(), 'assessment_reports/datamapper_assessment.html'),
-        'utf8'
-      );
-      expect(dataRaptorContent).to.not.include('DR_Test_Extract');
-      expect(dataRaptorContent).to.not.include('DR_Test_Transform');
+      void expect(fs.existsSync(path.join(process.cwd(), 'assessment_reports/datamapper_assessment.html'))).to.be.false;
 
       const flexCardContent = fs.readFileSync(
         path.join(process.cwd(), 'assessment_reports/flexcard_assessment.html'),
         'utf8'
       );
+
       expect(flexCardContent).to.include('FC_Test_Card');
       expect(flexCardContent).to.include('FC_Test_Form');
-
-      const omniScriptContent = fs.readFileSync(
-        path.join(process.cwd(), 'assessment_reports/omniscript_assessment.html'),
-        'utf8'
-      );
-      expect(omniScriptContent).to.not.include('OS_Test_Script');
-
-      const ipContent = fs.readFileSync(
-        path.join(process.cwd(), 'assessment_reports/integration_procedure_assessment.html'),
-        'utf8'
-      );
-      expect(ipContent).to.not.include('IP_Test_Procedure');
+      void expect(fs.existsSync(path.join(process.cwd(), 'assessment_reports/omniscript_assessment.html'))).to.be.false;
+      void expect(fs.existsSync(path.join(process.cwd(), 'assessment_reports/integration_procedure_assessment.html')))
+        .to.be.false;
     });
 
   test
     .withOrg({ username: 'test@org.com' }, true)
     .stdout()
     .stderr()
-    .command(['omnistudio:migration:assess', '-o', 'os'])
+    .command(['omnistudio:migration:assess', '-o', Constants.Omniscript])
     .it('generates assessment files with content only for OmniScript components', () => {
-      const dataRaptorContent = fs.readFileSync(
-        path.join(process.cwd(), 'assessment_reports/datamapper_assessment.html'),
-        'utf8'
-      );
-      expect(dataRaptorContent).to.not.include('DR_Test_Extract');
-      expect(dataRaptorContent).to.not.include('DR_Test_Transform');
-
-      const flexCardContent = fs.readFileSync(
-        path.join(process.cwd(), 'assessment_reports/flexcard_assessment.html'),
-        'utf8'
-      );
-      expect(flexCardContent).to.not.include('FC_Test_Card');
-      expect(flexCardContent).to.not.include('FC_Test_Form');
+      void expect(fs.existsSync(path.join(process.cwd(), 'assessment_reports/datamapper_assessment.html'))).to.be.false;
+      void expect(fs.existsSync(path.join(process.cwd(), 'assessment_reports/flexcard_assessment.html'))).to.be.false;
+      void expect(fs.existsSync(path.join(process.cwd(), 'assessment_reports/integration_procedure_assessment.html')))
+        .to.be.false;
 
       const omniScriptContent = fs.readFileSync(
         path.join(process.cwd(), 'assessment_reports/omniscript_assessment.html'),
         'utf8'
       );
       expect(omniScriptContent).to.include('OS_Test_Script');
-
-      const ipContent = fs.readFileSync(
-        path.join(process.cwd(), 'assessment_reports/integration_procedure_assessment.html'),
-        'utf8'
-      );
-      expect(ipContent).to.include('IP_Test_Procedure');
     });
 
   test
     .withOrg({ username: 'test@org.com' }, true)
     .stdout()
     .stderr()
-    .command(['omnistudio:migration:assess', '-o', 'ip'])
+    .command(['omnistudio:migration:assess', '-o', Constants.IntegrationProcedure])
     .it('generates assessment files with content only for Integration Procedure components', () => {
-      const dataRaptorContent = fs.readFileSync(
-        path.join(process.cwd(), 'assessment_reports/datamapper_assessment.html'),
-        'utf8'
-      );
-      expect(dataRaptorContent).to.not.include('DR_Test_Extract');
-      expect(dataRaptorContent).to.not.include('DR_Test_Transform');
-
-      const flexCardContent = fs.readFileSync(
-        path.join(process.cwd(), 'assessment_reports/flexcard_assessment.html'),
-        'utf8'
-      );
-      expect(flexCardContent).to.not.include('FC_Test_Card');
-      expect(flexCardContent).to.not.include('FC_Test_Form');
-
-      const omniScriptContent = fs.readFileSync(
-        path.join(process.cwd(), 'assessment_reports/omniscript_assessment.html'),
-        'utf8'
-      );
-      expect(omniScriptContent).to.include('OS_Test_Script');
+      void expect(fs.existsSync(path.join(process.cwd(), 'assessment_reports/datamapper_assessment.html'))).to.be.false;
+      void expect(fs.existsSync(path.join(process.cwd(), 'assessment_reports/flexcard_assessment.html'))).to.be.false;
+      void expect(fs.existsSync(path.join(process.cwd(), 'assessment_reports/omniscript_assessment.html'))).to.be.false;
 
       const ipContent = fs.readFileSync(
         path.join(process.cwd(), 'assessment_reports/integration_procedure_assessment.html'),
@@ -397,7 +339,7 @@ describe('omnistudio:migration:assess', () => {
   //   .withOrg({ username: 'test@org.com' }, true)
   //   .stdout()
   //   .stderr()
-  //   .command(['omnistudio:migration:assess', '-r', 'apex'])
+  //   .command(['omnistudio:migration:assess', '-r', ''])
   //   .it('generates assessment files with content only for Apex components', () => {
   //     const apexContent = fs.readFileSync(path.join(process.cwd(), 'assessment_reports/apex_assessment.html'), 'utf8');
   //     void expect(apexContent).to.include('TestApexClass');
@@ -437,7 +379,7 @@ describe('omnistudio:migration:assess', () => {
     .withOrg({ username: 'test@org.com' }, true)
     .stdout()
     .stderr()
-    .command(['omnistudio:migration:assess', '-r', 'lwc'])
+    .command(['omnistudio:migration:assess', '-r', Constants.LWC])
     .it('does not generate LWC assessment file when lwc option is passed since functionality is disabled', () => {
       // LWC assessment file should not exist since LWC functionality is disabled
       const lwcFilePath = path.join(process.cwd(), 'assessment_reports/lwc_assessment.html');

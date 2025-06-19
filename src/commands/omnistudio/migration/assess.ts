@@ -11,6 +11,7 @@ import { DebugTimer, getNamespaceFromOrg } from '../../../utils';
 import { Logger } from '../../../utils/logger';
 import OmnistudioRelatedObjectMigrationFacade from '../../../migration/related/OmnistudioRelatedObjectMigrationFacade';
 import { OmnistudioOrgDetails, OrgUtils } from '../../../utils/orgUtils';
+import { Constants } from '../../../utils/constants/stringContants';
 
 Messages.importMessagesDirectory(__dirname);
 const messages = Messages.loadMessages('@salesforce/plugin-omnistudio-migration-tool', 'assess');
@@ -65,22 +66,16 @@ export default class Assess extends OmniStudioBaseCommand {
     const namespace = (this.flags.namespace as string) || (await getNamespaceFromOrg(conn));
     const orgs: OmnistudioOrgDetails = await OrgUtils.getOrgDetails(conn, namespace);
 
-    if (orgs.packageDetails.length === 0) {
-      Logger.error('No package installed on given org.');
-      return;
+    if (!orgs.hasValidNamespace) {
+      Logger.warn(messages.getMessage('invalidNamespace') + orgs.packageDetails.namespace);
     }
-    if (!orgs.isValidNamespace) {
-      Logger.error(`Invalid namespace: ${String(namespace)}. Please provide a valid namespace.`);
-      return;
-    }
-    if (!orgs.isNamespaceInstalled) {
-      Logger.error(
-        `Provided namespace ${String(namespace)} is not installed on the org. Please provide a valid namespace.`
-      );
+
+    if (!orgs.packageDetails) {
+      Logger.error(messages.getMessage('noPackageInstalled'));
       return;
     }
     if (orgs.omniStudioOrgPermissionEnabled) {
-      Logger.error('The org is already on standard data model.');
+      Logger.error(messages.getMessage('alreadyStandardModel'));
       return;
     }
 
@@ -103,10 +98,11 @@ export default class Assess extends OmniStudioBaseCommand {
     // Assess OmniStudio components
     await this.assessOmniStudioComponents(assesmentInfo, assessOnly, namespace, conn, allVersions);
 
+    let objectsToProcess: string[];
     // Assess related objects if specified
     if (relatedObjects) {
-      const validOptions = ['apex', 'lwc'];
-      const objectsToProcess = relatedObjects.split(',').map((obj) => obj.trim());
+      const validOptions = [Constants.Apex, Constants.LWC];
+      objectsToProcess = relatedObjects.split(',').map((obj) => obj.trim());
 
       // Validate input
       for (const obj of objectsToProcess) {
@@ -126,7 +122,7 @@ export default class Assess extends OmniStudioBaseCommand {
       assesmentInfo.apexAssessmentInfos = relatedObjectAssessmentResult.apexAssessmentInfos;
     }
 
-    await AssessmentReporter.generate(assesmentInfo, conn.instanceUrl, orgs);
+    await AssessmentReporter.generate(assesmentInfo, conn.instanceUrl, orgs, assessOnly, objectsToProcess);
     return assesmentInfo;
   }
 
@@ -146,16 +142,16 @@ export default class Assess extends OmniStudioBaseCommand {
     }
 
     switch (assessOnly) {
-      case 'dr':
+      case Constants.DataMapper:
         await this.assessDataRaptors(assesmentInfo, namespace, conn);
         break;
-      case 'fc':
+      case Constants.Flexcard:
         await this.assessFlexCards(assesmentInfo, namespace, conn, allVersions);
         break;
-      case 'os':
+      case Constants.Omniscript:
         await this.assessOmniScripts(assesmentInfo, namespace, conn, allVersions, OmniScriptExportType.OS);
         break;
-      case 'ip':
+      case Constants.IntegrationProcedure:
         await this.assessOmniScripts(assesmentInfo, namespace, conn, allVersions, OmniScriptExportType.IP);
         break;
       default:
@@ -164,7 +160,7 @@ export default class Assess extends OmniStudioBaseCommand {
   }
 
   private async assessDataRaptors(assesmentInfo: AssessmentInfo, namespace: string, conn: Connection): Promise<void> {
-    const drMigrator = new DataRaptorMigrationTool(namespace, conn, this.logger, messages, this.ux);
+    const drMigrator = new DataRaptorMigrationTool(namespace, conn, Logger, messages, this.ux);
     assesmentInfo.dataRaptorAssessmentInfos = await drMigrator.assess();
     Logger.logVerbose(`Assessed ${assesmentInfo.dataRaptorAssessmentInfos.length} DataRaptors`);
     Logger.log('DataRaptor assessment completed');
@@ -176,7 +172,7 @@ export default class Assess extends OmniStudioBaseCommand {
     conn: Connection,
     allVersions: boolean
   ): Promise<void> {
-    const flexMigrator = new CardMigrationTool(namespace, conn, this.logger, messages, this.ux, allVersions);
+    const flexMigrator = new CardMigrationTool(namespace, conn, Logger, messages, this.ux, allVersions);
     Logger.logVerbose('FlexCard Assessment');
     assesmentInfo.flexCardAssessmentInfos = await flexMigrator.assess();
     Logger.logVerbose(`Assessed ${assesmentInfo.flexCardAssessmentInfos.length} FlexCards`);
@@ -195,7 +191,7 @@ export default class Assess extends OmniStudioBaseCommand {
       exportType,
       namespace,
       conn,
-      this.logger,
+      Logger,
       messages,
       this.ux,
       allVersions

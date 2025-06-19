@@ -13,11 +13,12 @@ import {
   TokenUpdater,
 } from '../../utils/apex/parser/apexparser';
 import { sfProject } from '../../utils/sfcli/project/sfProject';
-import { fileUtil, File } from '../../utils/file/fileUtil';
+import { FileUtil, File } from '../../utils/file/fileUtil';
 import { Logger } from '../../utils/logger';
 import { ApexAssessmentInfo } from '../../utils';
 import { FileDiffUtil } from '../../utils/lwcparser/fileutils/FileDiffUtil';
 import { Stringutil } from '../../utils/StringValue/stringutil';
+import { Constants } from '../../utils/constants/stringContants';
 import { BaseRelatedObjectMigration } from './BaseRealtedObjectMigration';
 
 const APEXCLASS = 'Apexclass';
@@ -39,7 +40,7 @@ export class ApexMigration extends BaseRelatedObjectMigration {
     this.vlocityOpenInterface = new InterfaceImplements(VLOCITY_OPEN_INTERFACE, this.namespace);
   }
   public processObjectType(): string {
-    return 'apex';
+    return Constants.Apex;
   }
   // public identifyObjects(migrationResults: MigrationResult[]): Promise<JSON[]> {
   //   throw new Error('Method not implemented.');
@@ -77,7 +78,7 @@ export class ApexMigration extends BaseRelatedObjectMigration {
   public processApexFiles(dir: string): ApexAssessmentInfo[] {
     dir += APEX_CLASS_PATH;
     let files: File[] = [];
-    files = fileUtil.readFilesSync(dir);
+    files = FileUtil.readFilesSync(dir);
     Logger.logVerbose(`Found ${files.length} Apex files in directory: ${dir}`);
     const fileAssessmentInfo: ApexAssessmentInfo[] = [];
     for (const file of files) {

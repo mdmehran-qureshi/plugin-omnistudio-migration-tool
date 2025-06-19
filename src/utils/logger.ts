@@ -1,6 +1,6 @@
 import { UX } from '@salesforce/command';
 import { Logger as SfLogger } from '@salesforce/core';
-import { FileLogger } from './logger/FileLogger';
+import { FileLogger } from './logger/fileLogger';
 
 export class Logger {
   private static sfUX: UX;

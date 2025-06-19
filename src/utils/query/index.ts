@@ -1,5 +1,6 @@
 import { Connection } from '@salesforce/core';
 import { AnyJson } from '@salesforce/ts-types';
+import { Logger } from '../logger';
 
 /* eslint-disable */
 export class QueryTools {
@@ -234,4 +235,17 @@ export enum SortDirection {
 export interface SortField {
   field: string;
   direction: SortDirection;
+}
+
+export async function getNamespaceFromOrg(conn: any): Promise<string | undefined> {
+  try {
+    const queryResult = await conn.query("SELECT NamespacePrefix FROM ApexClass WHERE Name = 'DRGlobal'");
+    if (queryResult.records && queryResult.records.length > 0) {
+      return (queryResult.records[0] as { NamespacePrefix: string }).NamespacePrefix;
+    }
+  } catch (error) {
+    Logger.warn('Could not determine namespace from org');
+    Logger.logVerbose(`Namespace query error: ${error}`);
+  }
+  return undefined;
 }

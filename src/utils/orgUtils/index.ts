@@ -20,6 +20,8 @@ export interface OmnistudioOrgDetails {
   omniStudioOrgPermissionEnabled: boolean;
   orgDetails: OrgDetails;
   dataModel: string;
+  isValidNamespace: boolean;
+  isNamespaceInstalled: boolean;
 }
 
 export interface PackageDetail {
@@ -309,11 +311,16 @@ export class OrgUtils {
         namespace: pkg.NamespacePrefix,
       }));
 
+    const isValidNamespace = this.namespaces.has(namespace);
+    const isNamespaceInstalled = packageDetails.some((pkg) => pkg.namespace === namespace);
+
     return {
       packageDetails: packageDetails,
       omniStudioOrgPermissionEnabled: omniStudioOrgPermissionEnabled,
       orgDetails: orgDetails[0],
-      dataModel: omniStudioOrgPermissionEnabled ? this.standardDataModel : this.customDataModel
+      dataModel: omniStudioOrgPermissionEnabled ? this.standardDataModel : this.customDataModel,
+      isValidNamespace: isValidNamespace,
+      isNamespaceInstalled: isNamespaceInstalled
     };
   }
 

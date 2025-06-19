@@ -56,9 +56,9 @@ export class XmlParser {
   public saveToFile(outputFilePath: string, xmlString: string): void {
     try {
       fs.writeFileSync(outputFilePath, xmlString);
-      Logger.logger.info(`Modified HTML saved to ${outputFilePath}`);
+      Logger.info(`Modified HTML saved to ${outputFilePath}`);
     } catch (error) {
-      Logger.logger.error(`Error writing file to disk: ${error}`);
+      Logger.error(`Error writing file to disk: ${error}`);
       throw error;
     }
   }

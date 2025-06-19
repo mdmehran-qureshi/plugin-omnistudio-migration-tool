@@ -15,7 +15,7 @@ export class FileProcessorFactory {
       case '.xml':
         return new XmlFileProcessor();
       default:
-        // Logger.logger.error('No processor found for file extension: ' + extension);
+        // Logger.error('No processor found for file extension: ' + extension);
         return null;
     }
   }

@@ -112,7 +112,7 @@ export class FileDiffUtil {
       // Return the diff array
       return diff;
     } catch (error) {
-      Logger.logger.error('Error in FileDiffUtil', error.message);
+      Logger.error(`Error in FileDiffUtil: ${String(error)}`);
     }
   }
 

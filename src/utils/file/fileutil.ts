@@ -68,7 +68,7 @@ export class fileUtil {
   public static saveToFile(outputFilePath: string, modifiedHtml: string): void {
     try {
       fs.writeFileSync(outputFilePath, modifiedHtml);
-      Logger.logger.info(`Modified HTML saved to ${outputFilePath}`);
+      Logger.info(`Modified HTML saved to ${outputFilePath}`);
     } catch (error) {
       console.error(`Error writing file to disk: ${error}`);
       throw error;
@@ -86,14 +86,14 @@ export class fileUtil {
     });
 
     for (const subDirectory of subDirectories) {
-      Logger.logger.info(`Processing subdirectory: ${subDirectory}`);
+      Logger.info(`Processing subdirectory: ${subDirectory}`);
       const subDirPath = path.join(baseDir, subDirectory);
 
       // Check the XML file for the substring
       const xmlFilePath = path.join(subDirPath, `${subDirectory}.js-meta.xml`);
       if (fs.existsSync(xmlFilePath)) {
         if (this.doesSubstringExist(xmlFilePath, searchString)) {
-          Logger.logger.info(`Substring found in ${xmlFilePath}. Skipping all files in ${subDirectory}.`);
+          Logger.info(`Substring found in ${xmlFilePath}. Skipping all files in ${subDirectory}.`);
           continue; // Move to the next subdirectory
         }
       }
@@ -105,7 +105,7 @@ export class fileUtil {
         .filter((file) => file.endsWith('.html') || file.endsWith('.js') || file.endsWith('.xml'));
       files.forEach((file) => {
         const filePath = path.join(subDirPath, file);
-        Logger.logger.info(`Processing file: ${filePath}`);
+        Logger.info(`Processing file: ${filePath}`);
         const name = path.parse(file).name;
         const ext = path.parse(file).ext;
         const filepath = path.resolve(subDirPath, file);
@@ -161,7 +161,7 @@ export function pushAssestUtilites(folderName: string, destDir: string): void {
   const sourceDir = path.join(process.cwd(), 'src', folderName);
 
   if (!fs.existsSync(destDir)) {
-    Logger.logger.warn(`Destination directory does not exist: ${destDir}`);
+    Logger.warn(`Destination directory does not exist: ${destDir}`);
     return;
   }
 
@@ -177,11 +177,11 @@ export function pushAssestUtilites(folderName: string, destDir: string): void {
         try {
           fs.copyFileSync(srcPath, destPath);
         } catch (copyErr) {
-          Logger.logger.error(`Error copying file ${srcPath} to ${destPath}: ${copyErr}`);
+          Logger.error(`Error copying file ${srcPath} to ${destPath}: ${copyErr}`);
         }
       }
     });
   } catch (readDirErr) {
-    Logger.logger.error(`Error reading directory ${sourceDir}: ${readDirErr}`);
+    Logger.error(`Error reading directory ${sourceDir}: ${readDirErr}`);
   }
 }

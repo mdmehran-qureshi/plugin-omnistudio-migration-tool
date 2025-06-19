@@ -14,6 +14,16 @@ import {
   populateRegexForFunctionMetadata,
 } from '../utils/formula/FormulaUtil';
 import { StringVal } from '../utils/StringValue/stringval';
+import cliProgress from 'cli-progress';
+import { Logger } from '../utils/logger';
+
+const createProgressBar = (action: string) => new cliProgress.SingleBar({
+  format: `${action} Data Mapper |\t\t\t\t {bar} | {percentage}% || {value}/{total} Task`,
+  barCompleteChar: '\u2588',
+  barIncompleteChar: '\u2591',
+  hideCursor: true,
+  stopOnComplete: true
+});
 
 export class DataRaptorMigrationTool extends BaseMigrationTool implements MigrationTool {
   static readonly DRBUNDLE_NAME = 'DRBundle__c';
@@ -66,8 +76,6 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
     populateRegexForFunctionMetadata(functionDefinitionMetadata);
     // Start transforming each dataRaptor
     DebugTimer.getInstance().lap('Transform Data Raptor');
-    let done = 0;
-    const total = dataRaptors.length;
 
     if (functionDefinitionMetadata.length > 0 && dataRaptorItemsData.length > 0) {
       // do the formula updation in the DR items
@@ -81,7 +89,7 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
             );
             drItem[this.namespacePrefix + 'Formula__c'] = originalString;
           } catch (ex) {
-            this.logger.error(JSON.stringify(ex));
+            Logger.error(JSON.stringify(ex));
             console.log(
               "There was some problem while updating the formula syntax, please check the all the formula's syntax once : " +
                 drItem[this.namespacePrefix + 'Formula__c']
@@ -90,12 +98,15 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
         }
       }
     }
-
+    let progressCounter = 0;
+    let nonMigrationDataRaptors = dataRaptors.filter(dr => dr[this.namespacePrefix + 'Type__c'] !== 'Migration').length;
+    Logger.log(`Found ${nonMigrationDataRaptors} DataRaptors to migrate`);
+    const progressBar = createProgressBar('Migrating');
+    progressBar.start(nonMigrationDataRaptors, progressCounter);
     for (let dr of dataRaptors) {
-      this.reportProgress(total, done);
-
       // Skip if Type is "Migration"
       if (dr[this.namespacePrefix + 'Type__c'] === 'Migration') continue;
+      progressBar.update(++progressCounter);
       const recordId = dr['Id'];
       const name = dr['Name'];
 
@@ -178,9 +189,8 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
 
         drUploadInfo.set(recordId, drUploadResponse);
       }
-
-      done++;
     }
+    progressBar.stop();
 
     return {
       name: 'Data Mapper',
@@ -206,15 +216,14 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
   public async assess(): Promise<DataRaptorAssessmentInfo[]> {
     try {
       DebugTimer.getInstance().lap('Query data raptors');
+      Logger.log('Starting DataRaptor assessment');
       const dataRaptors = await this.getAllDataRaptors();
 
       const dataRaptorAssessmentInfos = this.processDRComponents(dataRaptors);
-      /* this.ux.log('dataRaptorAssessmentInfos');
-       this.ux.log(dataRaptorAssessmentInfos.toString()); */
       return dataRaptorAssessmentInfos;
     } catch (err) {
-      this.ux.log(err);
-      this.ux.log(err.getMessage());
+      Logger.error(err);
+      Logger.error(err.stack);
     }
   }
 
@@ -226,12 +235,18 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
     const existingDataRaptorNames = new Set<string>();
     const dataRaptorItemsMap = await this.getAllDRToItemsMap();
 
+
+    const progressBar = createProgressBar('Assessing');
+    let progressCounter = 0;
+    let nonMigrationDataRaptors = dataRaptors.filter(dr => dr[this.namespacePrefix + 'Type__c'] !== 'Migration').length;
+    Logger.log(`Found ${nonMigrationDataRaptors} DataRaptors to assess`);
+    progressBar.start(nonMigrationDataRaptors, progressCounter);
     // Now process each OmniScript and its elements
     for (const dataRaptor of dataRaptors) {
       if (dataRaptor[this.namespacePrefix + 'Type__c'] === 'Migration') continue;
       const drName = dataRaptor['Name'];
       // Await here since processOSComponents is now async
-      this.ux.log(drName);
+      Logger.info(`Processing DataRaptor: ${drName}`);
       const warnings: string[] = [];
       const existingDRNameVal = new StringVal(drName, 'name');
 
@@ -261,7 +276,7 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
       const drItems = dataRaptorItemsMap.get(drName);
       if (drItems) {
         for (const drItem of drItems) {
-          // this.ux.log(dataRaptor[this.namespacePrefix + 'Formula__c']);
+          // Logger.log(dataRaptor[this.namespacePrefix + 'Formula__c']);
           const formula = drItem[this.namespacePrefix + 'Formula__c'];
           if (formula) {
             try {
@@ -273,7 +288,7 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
                 });
               }
             } catch (ex) {
-              this.logger.error(JSON.stringify(ex));
+              Logger.error(JSON.stringify(ex));
               console.log(
                 "There was some problem while updating the formula syntax, please check the all the formula's syntax once : " +
                   formula
@@ -293,7 +308,9 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
         warnings: warnings,
       };
       dataRaptorAssessmentInfos.push(dataRaptorAssessmentInfo);
+      progressBar.update(++progressCounter);
     }
+    progressBar.stop();
     return dataRaptorAssessmentInfos;
   }
 

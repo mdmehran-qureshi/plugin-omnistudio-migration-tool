@@ -75,9 +75,13 @@ export default class OmnistudioRelatedObjectMigrationFacade {
   private processRelatedObjects(relatedObjects: string[], isMigration: boolean): RelatedObjectAssesmentInfo {
     // Start the debug timer
     DebugTimer.getInstance().start();
+    Logger.logVerbose(
+      `Starting processRelatedObjects for ${String(relatedObjects)} in project path: ${this.projectPath}`
+    );
 
     // Retrieve metadata if needed
     if (isMigration) {
+      Logger.logVerbose(`Retrieving metadata for ${String(relatedObjects)} in project path: ${this.projectPath}`);
       this.retrieveMetadata(relatedObjects);
     }
 
@@ -94,7 +98,7 @@ export default class OmnistudioRelatedObjectMigrationFacade {
       }
     } catch (Error) {
       // Log the error
-      Logger.logger.error(Error.message);
+      Logger.error(Error.message);
     }
     // TODO: Uncomment code once MVP for migration is completed
     // try {
@@ -103,14 +107,14 @@ export default class OmnistudioRelatedObjectMigrationFacade {
     //   }
     // } catch (Error) {
     //   // Log the error
-    //   Logger.logger.error(Error.message);
+    //   Logger.error(Error.message);
     // }
 
     // Stop the debug timer
     const timer = debugTimer.stop();
 
     // Save timer to debug logger
-    Logger.logger.debug(timer);
+    Logger.debug(timer.toString());
 
     // Return results needed for --json flag
     return { apexAssessmentInfos, lwcAssessmentInfos };

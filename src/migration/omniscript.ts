@@ -16,7 +16,7 @@ import { BaseMigrationTool } from './base';
 import { MigrationResult, MigrationTool, TransformData, UploadRecordResult } from './interfaces';
 import { ObjectMapping } from './interfaces';
 import { NetUtils, RequestMethod } from '../utils/net';
-import { Connection, Messages, Logger } from '@salesforce/core';
+import { Connection, Messages } from '@salesforce/core';
 import { UX } from '@salesforce/command';
 import { OSAssessmentInfo, OmniAssessmentInfo, IPAssessmentInfo } from '../../src/utils';
 import {
@@ -26,6 +26,16 @@ import {
 } from '../utils/formula/FormulaUtil';
 import { StringVal } from '../utils/StringValue/stringval';
 import { formatUnicorn } from '../utils/stringUtils';
+import { Logger } from '../utils/logger';
+import cliProgress from 'cli-progress';
+
+const createProgressBar = (action: string) => new cliProgress.SingleBar({
+  format: `${action} Omniscript and Integration Procedure | {bar} | {percentage}% || {value}/{total} Tasks`,
+  barCompleteChar: '\u2588',
+  barIncompleteChar: '\u2591',
+  hideCursor: true,
+  stopOnComplete: true
+});
 
 export class OmniScriptMigrationTool extends BaseMigrationTool implements MigrationTool {
   private readonly exportType: OmniScriptExportType;
@@ -181,7 +191,10 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
     flexCardAssessmentInfos: FlexCardAssessmentInfo[]
   ): Promise<OmniAssessmentInfo> {
     try {
+      Logger.log('Starting OmniScript assessment');
       const omniscripts = await this.getAllOmniScripts();
+      Logger.log(`Found ${omniscripts.length} OmniScripts and Integration Procedures to assess`);
+
       const omniAssessmentInfos = await this.processOmniComponents(
         omniscripts,
         dataRaptorAssessmentInfos,
@@ -189,9 +202,9 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
       );
       return omniAssessmentInfos;
     } catch (err) {
-      this.logger.error(err);
-      this.ux.log(err);
-      this.ux.log(err.getMessage());
+      Logger.error('Error during OmniScript assessment');
+      Logger.error(err);
+      Logger.error(err.stack);
     }
   }
 
@@ -208,9 +221,13 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
     const existingDataRaptorNames = new Set(dataRaptorAssessmentInfos.map((info) => info.name));
     const existingFlexCardNames = new Set(flexCardAssessmentInfos.map((info) => info.name));
 
+    const progressBar = createProgressBar('Assessing');
+    let progressCounter = 0;
+    progressBar.start(omniscripts.length, progressCounter);
     // First, collect all OmniScript names from the omniscripts array
     // Now process each OmniScript and its elements
     for (const omniscript of omniscripts) {
+      Logger.info(`Processing OmniScript: ${omniscript['Name']}`);
       const elements = await this.getAllElementsForOmniScript(omniscript['Id']);
 
       const dependencyIP: nameLocation[] = [];
@@ -391,7 +408,9 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
         };
         ipAssessmentInfos.push(ipAssessmentInfo);
       }
+      progressBar.update(++progressCounter);
     }
+    progressBar.stop();
 
     const omniAssessmentInfo: OmniAssessmentInfo = {
       osAssessmentInfos: osAssessmentInfos,
@@ -410,10 +429,12 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
     const duplicatedNames = new Set<string>();
 
     // Variables to be returned After Migration
-    let done = 0;
     let originalOsRecords = new Map<string, any>();
     let osUploadInfo = new Map<string, UploadRecordResult>();
-    const total = omniscripts.length;
+    Logger.log(`Found ${omniscripts.length} OmniScripts and Integration Procedures to migrate`);
+    const progressBar = createProgressBar('Migrating');
+    let progressCounter = 0;
+    progressBar.start(omniscripts.length, progressCounter);
 
     for (let omniscript of omniscripts) {
       const mappedRecords = [];
@@ -421,7 +442,7 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
       const recordId = omniscript['Id'];
       const isOsActive = omniscript[`${this.namespacePrefix}IsActive__c`];
 
-      this.reportProgress(total, done);
+      progressBar.update(++progressCounter);
 
       // Create a map of the original OmniScript__c records
       originalOsRecords.set(recordId, omniscript);
@@ -445,7 +466,7 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
                 );
                 ipElement[`${this.namespacePrefix}PropertySet__c`] = originalString;
               } catch (ex) {
-                this.logger.error(JSON.stringify(ex));
+                Logger.error(JSON.stringify(ex));
                 console.log(
                   "There was some problem while updating the formula syntax, please check the all the formula's syntax once : " +
                     ipElement[`${this.namespacePrefix}PropertySet__c`]
@@ -592,9 +613,8 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
       }
 
       originalOsRecords.set(recordId, omniscript);
-
-      done++;
     }
+    progressBar.stop();
 
     const objectMigrationResults: MigrationResult[] = [];
 
@@ -641,7 +661,7 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
   // Get All OmniScript__c records i.e All IP & OS
   private async getAllOmniScripts(): Promise<AnyJson[]> {
     //DebugTimer.getInstance().lap('Query OmniScripts');
-    this.logger.info('allVersions : ' + this.allVersions);
+    Logger.info('allVersions : ' + this.allVersions);
     const filters = new Map<string, any>();
 
     if (this.exportType === OmniScriptExportType.IP) {

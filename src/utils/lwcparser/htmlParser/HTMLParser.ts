@@ -47,9 +47,9 @@ export class HTMLParser {
   public saveToFile(outputFilePath: string, modifiedHtml: string): void {
     try {
       fs.writeFileSync(outputFilePath, modifiedHtml);
-      Logger.logger.info(`Modified HTML saved to ${outputFilePath}`);
+      Logger.info(`Modified HTML saved to ${outputFilePath}`);
     } catch (error) {
-      Logger.logger.error(`Error writing file to disk: ${error}`);
+      Logger.error(`Error writing file to disk: ${error}`);
       throw error;
     }
   }

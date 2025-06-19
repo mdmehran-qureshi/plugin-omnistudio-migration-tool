@@ -13,7 +13,7 @@ import { flags } from '@salesforce/command';
 import { Messages } from '@salesforce/core';
 import OmniStudioBaseCommand from '../../basecommand';
 import { DataRaptorMigrationTool } from '../../../migration/dataraptor';
-import { DebugTimer, MigratedObject, MigratedRecordInfo } from '../../../utils';
+import { DebugTimer, getNamespaceFromOrg, MigratedObject, MigratedRecordInfo } from '../../../utils';
 import { MigrationResult, MigrationTool } from '../../../migration/interfaces';
 import { ResultsBuilder } from '../../../utils/resultsbuilder';
 import { CardMigrationTool } from '../../../migration/flexcard';
@@ -55,31 +55,47 @@ export default class Migrate extends OmniStudioBaseCommand {
       char: 'r',
       description: messages.getMessage('apexLwc'),
     }),
+    verbose: flags.builtin({
+      type: 'builtin',
+      description: 'Enable verbose output',
+    }),
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async run(): Promise<any> {
-    const namespace = (this.flags.namespace || 'vlocity_ins') as string;
-    const apiVersion = (this.flags.apiversion || '55.0') as string;
+    let apiVersion = this.flags.apiversion as string;
     const migrateOnly = (this.flags.only || '') as string;
-    const allVersions = this.flags.allversions || false;
+    const allVersions = this.flags.allversions || (false as boolean);
     const relatedObjects = (this.flags.relatedobjects || '') as string;
 
-    Logger.initialiseLogger(this.ux, this.logger);
-    this.logger = Logger.logger;
+    Logger.initialiseLogger(this.ux, this.logger, 'migrate', this.flags.verbose);
     // this.org is guaranteed because requiresUsername=true, as opposed to supportsUsername
     const conn = this.org.getConnection();
-    conn.setApiVersion(apiVersion);
+    if (apiVersion) {
+      conn.setApiVersion(apiVersion);
+    } else {
+      apiVersion = conn.getApiVersion();
+    }
 
+    const namespace = this.flags.namespace || (await getNamespaceFromOrg(conn));
     const orgs: OmnistudioOrgDetails = await OrgUtils.getOrgDetails(conn, namespace);
 
     if (orgs.packageDetails.length === 0) {
-      this.ux.log('No package installed on given org.');
+      Logger.error('No package installed on given org.');
       return;
     }
-
+    if (!orgs.isValidNamespace) {
+      Logger.error(`Invalid namespace: ${String(namespace)}. Please provide a valid namespace.`);
+      return;
+    }
+    if (!orgs.isNamespaceInstalled) {
+      Logger.error(
+        `Provided namespace ${String(namespace)} is not installed on the org. ` + 'Please provide a valid namespace.'
+      );
+      return;
+    }
     if (orgs.omniStudioOrgPermissionEnabled) {
-      this.ux.log('The org is already on standard data model.');
+      Logger.error('The org is already on standard data model.');
       return;
     }
 
@@ -94,20 +110,27 @@ export default class Migrate extends OmniStudioBaseCommand {
       // Validate input
       for (const obj of objectsToProcess) {
         if (!validOptions.includes(obj)) {
-          Logger.logger.warn(`Invalid option provided for -r: ${obj}. Valid options are apex, lwc.`);
+          Logger.warn(`Invalid option provided for -r: ${obj}. Valid options are apex, lwc.`);
         }
       }
       // Ask for user consent
-      const consent = await this.ux.confirm(
+      const consent = await Logger.confirm(
         'By proceeding further, you hereby consent to the use, accept changes to your custom code, and the accompanying terms and conditions associated with the use of the OmniStudio Migration Tool. Do you want to proceed? [y/n]'
       );
       if (!consent) {
-        this.ux.error(`User declined consent, will not process ${relatedObjects} .`);
+        Logger.error(`User declined consent, will not process ${relatedObjects} .`);
       } else {
+        Logger.info('User consented to proceed');
         projectPath = await this.getProjectPath(relatedObjects, projectPath);
         targetApexNamespace = await this.getTargetApexNamespace(objectsToProcess, targetApexNamespace);
       }
     }
+
+    Logger.log(`Migration Initialization: Using namespace: ${String(namespace)}`);
+    Logger.logVerbose(`API Version: ${apiVersion}`);
+    Logger.logVerbose(`Migration targets: ${migrateOnly || 'all'}`);
+    Logger.logVerbose(`Related objects: ${relatedObjects || 'none'}`);
+    Logger.logVerbose(`All versions: ${String(allVersions)}`);
 
     // const includeLwc = this.flags.lwc ? await this.ux.confirm('Do you want to include LWC migration? (yes/no)') : false;
     // Register the migration objects
@@ -120,10 +143,10 @@ export default class Migrate extends OmniStudioBaseCommand {
     let allTruncateComplete = true;
     for (const cls of migrationObjects.reverse()) {
       try {
-        Logger.ux.log('Cleaning: ' + cls.getName());
+        Logger.log('Cleaning: ' + cls.getName());
         debugTimer.lap('Cleaning: ' + cls.getName());
         await cls.truncate();
-        Logger.ux.log('Cleaning Done: ' + cls.getName());
+        Logger.log('Cleaning Done: ' + cls.getName());
       } catch (ex: any) {
         allTruncateComplete = false;
         objectMigrationResults.push({
@@ -136,10 +159,10 @@ export default class Migrate extends OmniStudioBaseCommand {
     if (allTruncateComplete) {
       for (const cls of migrationObjects.reverse()) {
         try {
-          this.ux.log('Migrating: ' + cls.getName());
+          Logger.log('Migrating: ' + cls.getName());
           debugTimer.lap('Migrating: ' + cls.getName());
           const results = await cls.migrate();
-          this.ux.log('Migration completed: ' + cls.getName());
+          Logger.log('Migration completed: ' + cls.getName());
           objectMigrationResults = objectMigrationResults.concat(
             results.map((r) => {
               return {
@@ -149,7 +172,7 @@ export default class Migrate extends OmniStudioBaseCommand {
             })
           );
         } catch (ex: any) {
-          this.logger.error(JSON.stringify(ex));
+          Logger.error(JSON.stringify(ex));
           objectMigrationResults.push({
             name: cls.getName(),
             errors: [ex.message],
@@ -178,7 +201,7 @@ export default class Migrate extends OmniStudioBaseCommand {
     await ResultsBuilder.generateReport(objectMigrationResults, relatedObjectMigrationResult, conn.instanceUrl, orgs);
 
     // save timer to debug logger
-    this.logger.debug(timer);
+    Logger.logVerbose(timer.toString());
 
     // Return results needed for --json flag
     return { objectMigrationResults };
@@ -247,26 +270,28 @@ export default class Migrate extends OmniStudioBaseCommand {
   }
 
   private async getProjectPath(relatedObjects: string, projectPath: string): Promise<string> {
-    const projectPathConfirmation = await this.ux
-      .confirm(`Do you have a sfdc project where ${relatedObjects} files are already retrieved from org - y
-          or you want tool to create a project omnistudio_migration in current directory for processing - n ? [y/n]`);
+    const projectPathConfirmation = await Logger.confirm(
+      `Do you have a sfdc project where ${relatedObjects} files are already retrieved from org - y\n` +
+        'or you want tool to create a project omnistudio_migration in current directory for processing - n ? [y/n]'
+    );
     if (projectPathConfirmation) {
-      projectPath = await this.ux.prompt(`Enter the project path for processing ${relatedObjects} :`);
+      Logger.info('User consented to proceed');
+      projectPath = await Logger.prompt(`Enter the project path for processing ${relatedObjects} :`);
       const projectJsonFile = 'sfdx-project.json';
       if (!fs.existsSync(projectPath + '/' + projectJsonFile)) {
         throw new Error(`Could not find any ${projectJsonFile} in  ${projectPath}.`);
       }
-      this.ux.log(`Using project path: ${projectPath}`);
+      Logger.log(`Using project path: ${projectPath}`);
     }
     return projectPath;
   }
 
   private async getTargetApexNamespace(objectsToProcess: string[], targetApexNamespace: string): Promise<string> {
     if (objectsToProcess.includes('apex')) {
-      targetApexNamespace = await this.ux.prompt(
+      targetApexNamespace = await Logger.prompt(
         'Enter the target namespace to be used for calling package Apex classes'
       );
-      this.ux.log(`Using target namespace: ${targetApexNamespace} for calling package Apex classes`);
+      Logger.log(`Using target namespace: ${targetApexNamespace} for calling package Apex classes`);
     }
     return targetApexNamespace;
   }

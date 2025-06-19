@@ -23,24 +23,30 @@ export class LwcMigration extends BaseRelatedObjectMigration {
   //   return this.mapToName(this.migrate());
   // }
   public assessment(): LWCAssessmentInfo[] {
+    Logger.logVerbose(`Starting LWC assessment in project path: ${this.projectPath}`);
     const type = 'assessment';
     const pwd = shell.pwd();
     shell.cd(this.projectPath);
     sfProject.retrieve(LWCTYPE, this.org.getUsername());
+    Logger.info('Processing LWCs for assessment');
     const filesMap = this.processLwcFiles(this.projectPath);
+    Logger.info(`Successfully processed ${filesMap.size} LWCs for assessment`);
+    Logger.logVerbose(`LWC assessment results: ${JSON.stringify(filesMap, null, 2)}`);
     shell.cd(pwd);
     return this.processFiles(filesMap, type);
   }
 
   public migrate(): LWCAssessmentInfo[] {
+    Logger.logVerbose(`Starting LWC migration in project path: ${this.projectPath}`);
     const pwd = shell.pwd();
     shell.cd(this.projectPath);
     // const targetOrg: Org = this.org;
     // sfProject.retrieve(LWCTYPE, targetOrg.getUsername());
-    Logger.logger.info('Processing LWCs for migration ');
+    Logger.info('Processing LWCs for migration');
     const filesMap = this.processLwcFiles(this.projectPath);
     const LWCAssessmentInfos = this.processFiles(filesMap, 'migration');
-    Logger.logger.info(' LWCs processed for migration ');
+    Logger.info(`Successfully processed ${LWCAssessmentInfos.length} LWCs for migration`);
+    Logger.logVerbose(`LWC migration results: ${JSON.stringify(LWCAssessmentInfos, null, 2)}`);
     // sfProject.deploy(LWCTYPE, targetOrg.getUsername());
     shell.cd(pwd);
     return LWCAssessmentInfos;
@@ -53,7 +59,7 @@ export class LwcMigration extends BaseRelatedObjectMigration {
     try {
       filesMap = fileUtil.readAndProcessFiles(dir, 'OmniScript Auto-generated');
     } catch (error) {
-      Logger.logger.error('Error in reading files', error);
+      Logger.error(`Error in reading files: ${String(error)}`);
     }
     return filesMap;
   }
@@ -106,7 +112,7 @@ export class LwcMigration extends BaseRelatedObjectMigration {
       });
       return jsonData;
     } catch (error) {
-      Logger.logger.error(error.message);
+      Logger.error(`Error in processing files: ${String(error)}`);
     }
   }
 

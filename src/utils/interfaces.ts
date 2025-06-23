@@ -144,3 +144,23 @@ export interface oldNew {
   old: string;
   new: string;
 }
+
+export interface OmniStudioSettingsMetadata {
+  fullName: string;
+  disableRollbackFlagsPref: boolean;
+}
+
+export interface QueryResult {
+  DeveloperName: string;
+  Value: string;
+  totalSize: number;
+  done: boolean;
+  records: Array<{
+    attributes: {
+      type: string;
+      url: string;
+    };
+    DeveloperName: string;
+    Value: string;
+  }>
+}

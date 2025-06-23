@@ -21,6 +21,7 @@ export interface OmnistudioOrgDetails {
   orgDetails: OrgDetails;
   dataModel: string;
   hasValidNamespace: boolean;
+  rollbackFlags?: string[];
 }
 
 export interface PackageDetail {

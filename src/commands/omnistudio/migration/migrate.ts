@@ -23,6 +23,7 @@ import OmnistudioRelatedObjectMigrationFacade from '../../../migration/related/O
 import { generatePackageXml } from '../../../utils/generatePackageXml';
 import { OmnistudioOrgDetails, OrgUtils } from '../../../utils/orgUtils';
 import { Constants } from '../../../utils/constants/stringContants';
+import { OrgPreferences } from '../../../utils/orgpreferences';
 
 // Initialize Messages with the current plugin directory
 Messages.importMessagesDirectory(__dirname);
@@ -70,6 +71,7 @@ export default class Migrate extends OmniStudioBaseCommand {
     const relatedObjects = (this.flags.relatedobjects || '') as string;
 
     Logger.initialiseLogger(this.ux, this.logger, 'migrate', this.flags.verbose);
+
     // this.org is guaranteed because requiresUsername=true, as opposed to supportsUsername
     const conn = this.org.getConnection();
     if (apiVersion) {
@@ -91,6 +93,15 @@ export default class Migrate extends OmniStudioBaseCommand {
     if (orgs.omniStudioOrgPermissionEnabled) {
       Logger.error(messages.getMessage('alreadyStandardModel'));
       return;
+    }
+
+    // Enable Omni preferences
+    try {
+      orgs.rollbackFlags = await OrgPreferences.checkRollbackFlags(conn);
+      await OrgPreferences.enableOmniPreferences(conn);
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      this.ux.log(`Could not enable Omni preferences: ${errMsg}`);
     }
 
     const namespace = orgs.packageDetails.namespace;

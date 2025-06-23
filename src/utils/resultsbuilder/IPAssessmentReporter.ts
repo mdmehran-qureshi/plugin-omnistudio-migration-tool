@@ -12,7 +12,8 @@ export class IPAssessmentReporter {
   public static generateIPAssesment(
     ipAssessmentInfos: IPAssessmentInfo[],
     instanceUrl: string,
-    org: ReportHeaderFormat[]
+    orgDetails: ReportHeaderFormat[],
+    rollbackFlags: string[]
   ): string {
     // Define multi-row headers
     const headerColumn: HeaderColumn[] = [
@@ -107,11 +108,14 @@ export class IPAssessmentReporter {
       headerColumns: headerColumn,
       columns,
       rows: ipAssessmentInfos,
-      orgDetails: org,
+      orgDetails: orgDetails,
       filters: [],
       ctaSummary: [],
       reportHeaderLabel: 'Integration Procedure Assessment',
       showMigrationBanner: true,
+      rollbackFlags,
+      rollbackFlagName: 'RollbackIPChanges',
+      commandType: 'assess',
     };
     // Render table
     const tableHtml = generateHtmlTable(reportFrameworkParameters);

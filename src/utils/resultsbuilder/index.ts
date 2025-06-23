@@ -46,6 +46,7 @@ export class ResultsBuilder {
 
     this.logger.info('Generating migration report dashboard');
     this.generateMigrationReportDashboard(orgDetails, this.getFormattedDetails(results, relatedObjectMigrationResult));
+    
     this.logger.info('Pushing assets');
     pushAssestUtilites('javascripts', resultsDir);
     pushAssestUtilites('styles', resultsDir);
@@ -319,6 +320,16 @@ export class ResultsBuilder {
     ];
 
     this.logger.info(`Generating table body for result: ${result.name}`);
+    
+    // Determine which rollback flag to use based on component type
+    let rollbackFlagNames: string[] = [];
+    const componentName = result.name.toLowerCase();
+    if (componentName.includes('datamapper') || componentName.includes('data mapper')) {
+      rollbackFlagNames = ['RollbackDRChanges'];
+    } else if (componentName.includes('omniscript') || componentName.includes('integration procedure')) {
+      rollbackFlagNames = ['RollbackOSChanges', 'RollbackIPChanges'];
+    }
+    
     const reportFrameworkParameters: ReportFrameworkParameters<MigratedRecordInfo> = {
       headerColumns,
       columns,
@@ -328,6 +339,9 @@ export class ResultsBuilder {
       ctaSummary: [],
       reportHeaderLabel: `${resultConstants.title}`,
       showMigrationBanner: true,
+      rollbackFlags: orgDetails.rollbackFlags,
+      rollbackFlagName: rollbackFlagNames.join(','),
+      commandType: 'migrate',
     };
 
     tablebody = generateHtmlTable(reportFrameworkParameters);
@@ -428,6 +442,9 @@ export class ResultsBuilder {
       ctaSummary: [],
       reportHeaderLabel: `${apexConstants.title}`,
       showMigrationBanner: false,
+      rollbackFlags: orgDetails.rollbackFlags,
+      rollbackFlagName: 'RollbackApexChanges',
+      commandType: 'migrate',
     };
 
     const html = `<html>${this.createHeadWithScript(

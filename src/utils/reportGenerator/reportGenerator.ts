@@ -21,6 +21,9 @@ export function generateHtmlTable<T>(reportFrameworkParameters: ReportFrameworkP
   const reportHeaderLabel: string = reportFrameworkParameters.reportHeaderLabel;
   const indexedKey: string = reportFrameworkParameters.indexedKey;
   const showMigrationBanner: boolean = reportFrameworkParameters.showMigrationBanner;
+  const rollbackFlags: string[] = reportFrameworkParameters.rollbackFlags || [];
+  const rollbackFlagName: string = reportFrameworkParameters.rollbackFlagName;
+  const commandType: 'assess' | 'migrate' = reportFrameworkParameters.commandType || 'assess';
 
   const transformedHeader: TableHeaderCell[][] = transform(headerColumns);
   const tableId = `report-table-${reportTableInstance++}`;
@@ -202,6 +205,15 @@ export function generateHtmlTable<T>(reportFrameworkParameters: ReportFrameworkP
       ${ctaSummary && ctaSummary.length > 0 ? ctaButton : ''}
   </div>`;
 
+  let rollbackFlagsHtml = '';
+  if (rollbackFlags && rollbackFlagName) {
+    const flagNames = rollbackFlagName.split(',').map(flag => flag.trim());
+    const matchingFlags = flagNames.filter(flag => rollbackFlags.includes(flag));
+    if (matchingFlags.length > 0) {
+      rollbackFlagsHtml = generateRollbackFlagsHtml(rollbackFlags, matchingFlags.join(', '), commandType);
+    }
+  }
+
   return `
    <div class="report-wrapper">
     <div id="scrollable-wrapper" class="scrollable-wrapper">
@@ -231,6 +243,7 @@ export function generateHtmlTable<T>(reportFrameworkParameters: ReportFrameworkP
     <script src="./reportGeneratorUtility.js" defer></script>
     <link rel="stylesheet" href="./reportGenerator.css">
   </div>
+    ${rollbackFlagsHtml}
   `;
 }
 
@@ -300,4 +313,28 @@ function createIndexedRow<T>(row: T, indexedKey: string, columns: Array<TableCol
         `;
   }
   return rows;
+}
+export function generateRollbackFlagsHtml(rollbackFlags: string[], flagNames: string, commandType: 'assess' | 'migrate' = 'assess'): string {
+  const flagNameArray = flagNames.split(',').map(flag => flag.trim());
+  const matchingFlags = flagNameArray.filter(flag => rollbackFlags.includes(flag));
+  
+  if (matchingFlags.length === 0) {
+    return '';
+  }
+  
+  const actionText = commandType === 'migrate' ? matchingFlags.length > 1 ? 'were' : 'was' : 'will be';
+  
+  return `
+    <div class="slds-box" style="background-color: white; margin-top: 20px;">
+      <div class="slds-text-heading_medium">Rollback Flags Disabled</div>
+      <div style="margin-block: 15px">
+        <p>The following rollback flag${matchingFlags.length > 1 ? 's' : ''} ${actionText} disabled during migration:</p>
+        <ul class="slds-list_dotted">
+          ${matchingFlags.map(flag => `<li class="slds-item slds-text-color_destructive">${flag}</li>`).join('')}
+        </ul>
+        <p>
+          <strong>Note:</strong> ${matchingFlags.length > 1 ? 'These ' : 'This '} flag${matchingFlags.length > 1 ? 's will' : ' will'} no longer be supported after migration. For assistance, please contact support.
+        </p>
+      </div>
+    </div>`;
 }

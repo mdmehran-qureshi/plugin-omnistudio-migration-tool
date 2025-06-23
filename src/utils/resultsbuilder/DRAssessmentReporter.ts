@@ -13,7 +13,8 @@ export class DRAssessmentReporter {
   public static generateDRAssesment(
     dataRaptorAssessmentInfos: DataRaptorAssessmentInfo[],
     instanceUrl: string,
-    org: ReportHeaderFormat[]
+    orgDetails: ReportHeaderFormat[],
+    rollbackFlags: string[]
   ): string {
     // Header Column
     const headerColumn: HeaderColumn[] = [
@@ -123,15 +124,18 @@ export class DRAssessmentReporter {
       },
     ];
 
-    const reportFrameworkParameters: ReportFrameworkParameters<DRAssessmentReporter> = {
+    const reportFrameworkParameters: ReportFrameworkParameters<DataRaptorAssessmentInfo> = {
       headerColumns: headerColumn,
       columns,
       rows: dataRaptorAssessmentInfos,
-      orgDetails: org,
+      orgDetails: orgDetails,
       filters,
       ctaSummary: [],
       reportHeaderLabel: 'Data Mapper Assessment',
       showMigrationBanner: true,
+      rollbackFlags,
+      rollbackFlagName: 'RollbackDRChanges',
+      commandType: 'assess',
     };
     // Render table
     const tableHtml = generateHtmlTable(reportFrameworkParameters);

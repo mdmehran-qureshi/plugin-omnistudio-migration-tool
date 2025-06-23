@@ -29,13 +29,13 @@ export class AssessmentReporter {
     const dataMapperAssessmentFilePath = basePath + '/datamapper_assessment.html';
     const apexAssessmentFilePath = basePath + '/apex_assessment.html';
     // TODO: Uncomment code once MVP for migration is completed
-    // const lwcAssessmentFilePath = basePath + '/lwc_assessment.html';
+    const lwcAssessmentFilePath = basePath + '/lwc_assessment.html';
     const orgDetails: ReportHeaderFormat[] = this.formattedOrgDetails(omnistudioOrgDetails);
 
     if (!assessOnly) {
       this.createDocument(
         omniscriptAssessmentFilePath,
-        OSAssessmentReporter.generateOSAssesment(result.omniAssessmentInfo.osAssessmentInfos, instanceUrl, orgDetails)
+        OSAssessmentReporter.generateOSAssesment(result.omniAssessmentInfo.osAssessmentInfos, instanceUrl, orgDetails, omnistudioOrgDetails.rollbackFlags)
       );
 
       this.createDocument(
@@ -54,12 +54,12 @@ export class AssessmentReporter {
 
       this.createDocument(
         integrationProcedureAssessmentFilePath,
-        IPAssessmentReporter.generateIPAssesment(result.omniAssessmentInfo.ipAssessmentInfos, instanceUrl, orgDetails)
+        IPAssessmentReporter.generateIPAssesment(result.omniAssessmentInfo.ipAssessmentInfos, instanceUrl, orgDetails, omnistudioOrgDetails.rollbackFlags)
       );
 
       this.createDocument(
         dataMapperAssessmentFilePath,
-        DRAssessmentReporter.generateDRAssesment(result.dataRaptorAssessmentInfos, instanceUrl, orgDetails)
+        DRAssessmentReporter.generateDRAssesment(result.dataRaptorAssessmentInfos, instanceUrl, orgDetails, omnistudioOrgDetails.rollbackFlags)
       );
     } else {
       switch (assessOnly) {
@@ -69,7 +69,8 @@ export class AssessmentReporter {
             OSAssessmentReporter.generateOSAssesment(
               result.omniAssessmentInfo.osAssessmentInfos,
               instanceUrl,
-              orgDetails
+              orgDetails,
+              omnistudioOrgDetails.rollbackFlags
             )
           );
           break;
@@ -87,7 +88,8 @@ export class AssessmentReporter {
             IPAssessmentReporter.generateIPAssesment(
               result.omniAssessmentInfo.ipAssessmentInfos,
               instanceUrl,
-              orgDetails
+              orgDetails,
+              omnistudioOrgDetails.rollbackFlags
             )
           );
           break;
@@ -95,7 +97,7 @@ export class AssessmentReporter {
         case Constants.DataMapper:
           this.createDocument(
             dataMapperAssessmentFilePath,
-            DRAssessmentReporter.generateDRAssesment(result.dataRaptorAssessmentInfos, instanceUrl, orgDetails)
+            DRAssessmentReporter.generateDRAssesment(result.dataRaptorAssessmentInfos, instanceUrl, orgDetails, omnistudioOrgDetails.rollbackFlags)
           );
           break;
 
@@ -116,6 +118,7 @@ export class AssessmentReporter {
     //     LWCAssessmentReporter.generateLwcAssesment(result.lwcAssessmentInfos, instanceUrl, orgDetails)
     //   );
     // }
+    
     const nameUrls = [
       {
         name: 'omnscript assessment report',

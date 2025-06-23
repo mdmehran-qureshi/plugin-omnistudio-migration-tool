@@ -14,7 +14,8 @@ export class OSAssessmentReporter {
   public static generateOSAssesment(
     osAssessmentInfos: OSAssessmentInfo[],
     instanceUrl: string,
-    org: ReportHeaderFormat[]
+    orgDetails: ReportHeaderFormat[],
+    rollbackFlags: string[]
   ): string {
     // Header Column
     const headerColumn: HeaderColumn[] = [
@@ -184,11 +185,14 @@ export class OSAssessmentReporter {
       headerColumns: headerColumn,
       columns,
       rows: osAssessmentInfos,
-      orgDetails: org,
+      orgDetails: orgDetails,
       filters,
       ctaSummary,
       reportHeaderLabel: 'Omniscript Assessment',
       showMigrationBanner: true,
+      rollbackFlags,
+      rollbackFlagName: 'RollbackOSChanges',
+      commandType: 'assess',
     };
 
     // Render table

@@ -8,5 +8,9 @@
     "sfdx omnistudio:migration:info --name myname --targetusername myOrg@example.com"
   ],
   "allVersionsDescription": "Migrate all versions of a component",
-  "apexLwc": "Please select the type of components to migrate: 'apex' for Apex classes, 'lwc' for Lightning Web Components, or 'apex,lwc' if you want to include both types."
+  "apexLwc": "Please select the type of components to migrate: 'apex' for Apex classes, 'lwc' for Lightning Web Components, or 'apex,lwc' if you want to include both types.",
+  "greetingOrgInfo": "Hello %s! This is org: %s",
+  "greetingOrgInfoWithDate": "Hello %s! This is org: %s and I will be around until %s!",
+  "hubOrgId": "My hub org id is: %s",
+  "allVersionsAppended": " and all versions will be migrated"
 }

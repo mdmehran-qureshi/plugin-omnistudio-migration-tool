@@ -1,11 +1,30 @@
 import { UX } from '@salesforce/command';
 import { Connection, Messages } from '@salesforce/core';
+import cliProgress from 'cli-progress';
 import { DebugTimer, QueryTools } from '../utils';
-
 import { NetUtils } from '../utils/net';
 import { Stringutil } from '../utils/StringValue/stringutil';
 import { Logger } from '../utils/logger';
 import { TransformData, UploadRecordResult } from './interfaces';
+
+export type ComponentType = 'Data Mapper' | 'Flexcard' | 'Omniscript and Integration Procedure';
+
+/**
+ * Creates a progress bar for migration/assessment operations
+ *
+ * @param action - The action being performed (e.g., 'Migrating', 'Assessing')
+ * @param componentType - The type of component being processed
+ * @returns A configured cliProgress.SingleBar instance
+ */
+export const createProgressBar = (action: string, componentType: ComponentType): cliProgress.SingleBar => {
+  return new cliProgress.SingleBar({
+    format: `${action} ${componentType} |${componentType === 'Omniscript and Integration Procedure' ? '' : '\t\t\t\t'} {bar} | {percentage}% || {value}/{total} Tasks`,
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591',
+    hideCursor: true,
+    stopOnComplete: true,
+  });
+};
 
 export class BaseMigrationTool {
   protected static readonly NAME_LENGTH = 250;
@@ -70,7 +89,7 @@ export class BaseMigrationTool {
 
     const success: boolean = await NetUtils.delete(this.connection, ids);
     if (!success) {
-      throw new Error('Could not truncate ' + objectName);
+      throw new Error(this.messages.getMessage('couldNotTruncate', [objectName]));
     }
   }
 
@@ -82,12 +101,5 @@ export class BaseMigrationTool {
    */
   protected setRecordErrors(record: unknown, ...errors: string[]): void {
     record['errors'] = errors;
-  }
-
-  protected reportProgress(total: number, current: number): void {
-    const progress = ((100 * current) / total).toFixed(0);
-    if (parseInt(progress, 10) % 10 === 0) {
-      this.ux.log(`${progress}% complete...`);
-    }
   }
 }

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Org } from '@salesforce/core';
+import { Org, Messages } from '@salesforce/core';
 import * as shell from 'shelljs';
 import { ApexAssessmentInfo, DebugTimer, LWCAssessmentInfo, RelatedObjectAssesmentInfo } from '../../utils';
 import { sfProject } from '../../utils/sfcli/project/sfProject';
@@ -11,12 +11,10 @@ import { Constants } from '../../utils/constants/stringContants';
 import { ApexMigration } from './ApexMigration';
 import { LwcMigration } from './LwcMigration';
 
-// Initialize Messages with the current plugin directory
-// Messages.importMessagesDirectory(__dirname);
+Messages.importMessagesDirectory(__dirname);
+const assessMessages = Messages.loadMessages('@salesforce/plugin-omnistudio-migration-tool', 'assess');
+const migrateMessages = Messages.loadMessages('@salesforce/plugin-omnistudio-migration-tool', 'migrate');
 
-// Load the specific messages for this file. Messages from @salesforce/command, @salesforce/core,
-// or any library that is using the messages framework can also be loaded this way.
-// const messages = Messages.loadMessages('@salesforce/plugin-omnistudio-related-object-migration-tool', 'migrate');
 // TODO: Uncomment code once MVP for migration is completed
 // const LWCTYPE = 'LightningComponentBundle';
 const APEXCLASS = 'Apexclass';
@@ -77,12 +75,12 @@ export default class OmnistudioRelatedObjectMigrationFacade {
     // Start the debug timer
     DebugTimer.getInstance().start();
     Logger.logVerbose(
-      `Starting processRelatedObjects for ${String(relatedObjects)} in project path: ${this.projectPath}`
+      assessMessages.getMessage('startingProcessRelatedObjects', [String(relatedObjects), this.projectPath])
     );
 
     // Retrieve metadata if needed
     if (isMigration) {
-      Logger.logVerbose(`Retrieving metadata for ${String(relatedObjects)} in project path: ${this.projectPath}`);
+      Logger.logVerbose(migrateMessages.getMessage('retrievingMetadata', [String(relatedObjects), this.projectPath]));
       this.retrieveMetadata(relatedObjects);
     }
 
@@ -99,7 +97,8 @@ export default class OmnistudioRelatedObjectMigrationFacade {
       }
     } catch (Error) {
       // Log the error
-      Logger.error(Error.message);
+      Logger.error(JSON.stringify(Error));
+      Logger.error(Error.stack);
     }
     // TODO: Uncomment code once MVP for migration is completed
     // try {

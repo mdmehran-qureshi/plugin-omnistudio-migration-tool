@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as shell from 'shelljs';
-import { Org } from '@salesforce/core';
+import { Org, Messages } from '@salesforce/core';
 import {
   ApexASTParser,
   InsertAfterTokenUpdate,
@@ -20,6 +20,10 @@ import { FileDiffUtil } from '../../utils/lwcparser/fileutils/FileDiffUtil';
 import { Stringutil } from '../../utils/StringValue/stringutil';
 import { Constants } from '../../utils/constants/stringContants';
 import { BaseRelatedObjectMigration } from './BaseRealtedObjectMigration';
+
+Messages.importMessagesDirectory(__dirname);
+const assessMessages = Messages.loadMessages('@salesforce/plugin-omnistudio-migration-tool', 'assess');
+const migrateMessages = Messages.loadMessages('@salesforce/plugin-omnistudio-migration-tool', 'migrate');
 
 const APEXCLASS = 'Apexclass';
 const APEX_CLASS_PATH = '/force-app/main/default/classes';
@@ -49,29 +53,33 @@ export class ApexMigration extends BaseRelatedObjectMigration {
   //   return this.migrate();
   // }
   public migrate(): ApexAssessmentInfo[] {
-    Logger.logVerbose(`Starting Apex migration in project path: ${this.projectPath}`);
+    Logger.logVerbose(migrateMessages.getMessage('startingApexMigration', [this.projectPath]));
     const pwd = shell.pwd();
     shell.cd(this.projectPath);
     // const targetOrg: Org = this.org;
     // sfProject.retrieve(APEXCLASS, targetOrg.getUsername());
-    Logger.info('Processing Apex files for migration');
+    Logger.info(migrateMessages.getMessage('processingApexFilesForMigration'));
     const apexAssessmentInfos = this.processApexFiles(this.projectPath);
-    Logger.info(`Successfully processed ${apexAssessmentInfos.length} Apex files for migration`);
-    Logger.logVerbose(`Apex assessment results: ${JSON.stringify(apexAssessmentInfos, null, 2)}`);
+    Logger.info(migrateMessages.getMessage('successfullyProcessedApexFilesForMigration', [apexAssessmentInfos.length]));
+    Logger.logVerbose(
+      migrateMessages.getMessage('apexMigrationResults', [JSON.stringify(apexAssessmentInfos, null, 2)])
+    );
     // sfProject.deploy(APEXCLASS, targetOrg.getUsername());
     shell.cd(pwd);
     return apexAssessmentInfos;
   }
 
   public assess(): ApexAssessmentInfo[] {
-    Logger.logVerbose(`Starting Apex assessment in project path: ${this.projectPath}`);
+    Logger.logVerbose(assessMessages.getMessage('startingApexAssessment', [this.projectPath]));
     const pwd = shell.pwd();
     shell.cd(this.projectPath);
     sfProject.retrieve(APEXCLASS, this.org.getUsername());
-    Logger.info('Processing Apex files for assessment');
+    Logger.info(assessMessages.getMessage('processingApexFilesForAssessment'));
     const apexAssessmentInfos = this.processApexFiles(this.projectPath);
-    Logger.info(`Successfully processed ${apexAssessmentInfos.length} Apex files for assessment`);
-    Logger.logVerbose(`Apex assessment results: ${JSON.stringify(apexAssessmentInfos, null, 2)}`);
+    Logger.info(assessMessages.getMessage('successfullyProcessedApexFilesForAssessment', [apexAssessmentInfos.length]));
+    Logger.logVerbose(
+      assessMessages.getMessage('apexAssessmentResults', [JSON.stringify(apexAssessmentInfos, null, 2)])
+    );
     shell.cd(pwd);
     return apexAssessmentInfos;
   }
@@ -79,26 +87,28 @@ export class ApexMigration extends BaseRelatedObjectMigration {
     dir += APEX_CLASS_PATH;
     let files: File[] = [];
     files = FileUtil.readFilesSync(dir);
-    Logger.logVerbose(`Found ${files.length} Apex files in directory: ${dir}`);
+    Logger.logVerbose(assessMessages.getMessage('foundApexFilesInDirectory', [files.length, dir]));
     const fileAssessmentInfo: ApexAssessmentInfo[] = [];
     for (const file of files) {
       if (file.ext !== '.cls') {
-        Logger.logVerbose(`Skipping non-Apex file: ${file.name}`);
+        Logger.logVerbose(assessMessages.getMessage('skippingNonApexFile', [file.name]));
         continue;
       }
       try {
-        Logger.logVerbose(`Processing Apex file: ${file.name}`);
+        Logger.logVerbose(assessMessages.getMessage('processingApexFile', [file.name]));
         const apexAssementInfo = this.processApexFile(file);
         if (apexAssementInfo && apexAssementInfo.diff.length < 3) {
-          Logger.logVerbose(`Skipping Apex file: ${file.name} as it has less than 3 changes`);
+          Logger.logVerbose(assessMessages.getMessage('skippingApexFileFewChanges', [file.name]));
           continue;
         }
         fileAssessmentInfo.push(apexAssementInfo);
-        Logger.logVerbose(`Successfully processed Apex file: ${file.name}`);
+        Logger.logVerbose(assessMessages.getMessage('successfullyProcessedApexFile', [file.name]));
       } catch (err) {
-        Logger.error(`Error processing Apex file: ${file.name}`);
+        Logger.error(assessMessages.getMessage('errorProcessingApexFile', [file.name]));
+        Logger.error(JSON.stringify(err));
+        Logger.error(err.stack);
       }
-      Logger.logVerbose(`Successfully processed Apex file: ${file.name}`);
+      Logger.logVerbose(assessMessages.getMessage('successfullyProcessedApexFile', [file.name]));
     }
     return fileAssessmentInfo;
   }
@@ -126,10 +136,10 @@ export class ApexMigration extends BaseRelatedObjectMigration {
 
     if (tokenUpdatesForRemoteCalls && tokenUpdatesForRemoteCalls.length > 0) {
       tokenUpdates.push(...tokenUpdatesForRemoteCalls);
-      updateMessages.push('File has been updated to allow remote calls from the Omnistudio components');
+      updateMessages.push(assessMessages.getMessage('fileUpdatedToAllowRemoteCalls'));
     }
     if (tokeUpdatesForMethodCalls && tokeUpdatesForMethodCalls.length > 0) {
-      updateMessages.push('File has been updated to allow calls to Omnistudio components');
+      updateMessages.push(assessMessages.getMessage('fileUpdatedToAllowCalls'));
       tokenUpdates.push(...tokeUpdatesForMethodCalls);
     }
     let difference = [];
@@ -139,7 +149,7 @@ export class ApexMigration extends BaseRelatedObjectMigration {
       difference = new FileDiffUtil().getFileDiff(file.name, fileContent, updatedContent);
     }
     if (updateMessages.length === 0) {
-      Logger.info(`File ${file.name} does not have any omnistudio calls or remote calls. No changes will be applied.`);
+      Logger.info(assessMessages.getMessage('fileNoOmnistudioCalls', [file.name]));
     }
     const warningMessage: string[] = this.processNonReplacableMethodCalls(file, parser);
     return {
@@ -155,13 +165,13 @@ export class ApexMigration extends BaseRelatedObjectMigration {
     const implementsInterface = parser.implementsInterfaces;
     const tokenUpdates: TokenUpdater[] = [];
     if (implementsInterface.has(this.callableInterface)) {
-      Logger.info('file ${file.name} already implements callable no changes will be applied');
+      Logger.info(assessMessages.getMessage('fileAlreadyImplementsCallable', [file.name]));
     } else if (implementsInterface.has(this.vlocityOpenInterface2)) {
       const tokens = implementsInterface.get(this.vlocityOpenInterface2);
       tokenUpdates.push(new RangeTokenUpdate(CALLABLE, tokens[0], tokens[1]));
       tokenUpdates.push(new InsertAfterTokenUpdate(this.callMethodBody(), parser.classDeclaration));
     } else if (implementsInterface.has(this.vlocityOpenInterface)) {
-      Logger.error('file ${file.name} implements VlocityOpenInterface please implement Callable');
+      Logger.error(assessMessages.getMessage('fileImplementsVlocityOpenInterface', [file.name]));
     }
     return tokenUpdates;
   }
@@ -181,8 +191,8 @@ export class ApexMigration extends BaseRelatedObjectMigration {
       for (const token of drParameters) {
         const newName = `'${Stringutil.cleanName(token.text)}'`;
         if (token.text === newName) continue;
-        Logger.info(`In Apex ${file.name}  DR name ${token.text} will be updated to ${newName} `);
-        Logger.log(`In Apex ${file.name}  DR name ${token.text} will be updated to ${newName}`);
+        Logger.info(assessMessages.getMessage('inApexDrNameWillBeUpdated', [file.name, token.text, newName]));
+        Logger.log(assessMessages.getMessage('inApexDrNameWillBeUpdated', [file.name, token.text, newName]));
         tokenUpdates.push(new SingleTokenUpdate(newName, token));
       }
     }
@@ -195,7 +205,11 @@ export class ApexMigration extends BaseRelatedObjectMigration {
     if (methodCalls.length === 0) return messages;
     for (const methodCall of methodCalls) {
       messages.push(
-        `${file.name} has method call ${methodCall.className} ${methodCall.methodName} for which bundleName could have been updated please check and replace with new value if updated.`
+        assessMessages.getMessage('methodCallBundleNameUpdated', [
+          file.name,
+          methodCall.className,
+          methodCall.methodName,
+        ])
       );
     }
     return messages;

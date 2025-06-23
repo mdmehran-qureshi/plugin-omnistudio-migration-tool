@@ -14,16 +14,8 @@ import {
   populateRegexForFunctionMetadata,
 } from '../utils/formula/FormulaUtil';
 import { StringVal } from '../utils/StringValue/stringval';
-import cliProgress from 'cli-progress';
 import { Logger } from '../utils/logger';
-
-const createProgressBar = (action: string) => new cliProgress.SingleBar({
-  format: `${action} Data Mapper |\t\t\t\t {bar} | {percentage}% || {value}/{total} Task`,
-  barCompleteChar: '\u2588',
-  barIncompleteChar: '\u2591',
-  hideCursor: true,
-  stopOnComplete: true
-});
+import { createProgressBar } from './base';
 
 export class DataRaptorMigrationTool extends BaseMigrationTool implements MigrationTool {
   static readonly DRBUNDLE_NAME = 'DRBundle__c';
@@ -90,9 +82,9 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
             drItem[this.namespacePrefix + 'Formula__c'] = originalString;
           } catch (ex) {
             Logger.error(JSON.stringify(ex));
+            Logger.error(ex.stack);
             console.log(
-              "There was some problem while updating the formula syntax, please check the all the formula's syntax once : " +
-                drItem[this.namespacePrefix + 'Formula__c']
+              this.messages.getMessage('formulaSyntaxError', [drItem[this.namespacePrefix + 'Formula__c']])
             );
           }
         }
@@ -100,8 +92,8 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
     }
     let progressCounter = 0;
     let nonMigrationDataRaptors = dataRaptors.filter(dr => dr[this.namespacePrefix + 'Type__c'] !== 'Migration').length;
-    Logger.log(`Found ${nonMigrationDataRaptors} DataRaptors to migrate`);
-    const progressBar = createProgressBar('Migrating');
+    Logger.log(this.messages.getMessage('foundDataRaptorsToMigrate', [nonMigrationDataRaptors]));
+    const progressBar = createProgressBar('Migrating', 'Data Mapper');
     progressBar.start(nonMigrationDataRaptors, progressCounter);
     for (let dr of dataRaptors) {
       // Skip if Type is "Migration"
@@ -216,13 +208,13 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
   public async assess(): Promise<DataRaptorAssessmentInfo[]> {
     try {
       DebugTimer.getInstance().lap('Query data raptors');
-      Logger.log('Starting DataRaptor assessment');
+      Logger.log(this.messages.getMessage('startingDataRaptorAssessment'));
       const dataRaptors = await this.getAllDataRaptors();
 
       const dataRaptorAssessmentInfos = this.processDRComponents(dataRaptors);
       return dataRaptorAssessmentInfos;
     } catch (err) {
-      Logger.error(err);
+      Logger.error(JSON.stringify(err));
       Logger.error(err.stack);
     }
   }
@@ -236,17 +228,17 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
     const dataRaptorItemsMap = await this.getAllDRToItemsMap();
 
 
-    const progressBar = createProgressBar('Assessing');
+    const progressBar = createProgressBar('Assessing', 'Data Mapper');
     let progressCounter = 0;
     let nonMigrationDataRaptors = dataRaptors.filter(dr => dr[this.namespacePrefix + 'Type__c'] !== 'Migration').length;
-    Logger.log(`Found ${nonMigrationDataRaptors} DataRaptors to assess`);
+    Logger.log(this.messages.getMessage('foundDataRaptorsToAssess', [nonMigrationDataRaptors]));
     progressBar.start(nonMigrationDataRaptors, progressCounter);
     // Now process each OmniScript and its elements
     for (const dataRaptor of dataRaptors) {
       if (dataRaptor[this.namespacePrefix + 'Type__c'] === 'Migration') continue;
       const drName = dataRaptor['Name'];
       // Await here since processOSComponents is now async
-      Logger.info(`Processing DataRaptor: ${drName}`);
+      Logger.info(this.messages.getMessage('processingDataRaptor', [drName]));
       const warnings: string[] = [];
       const existingDRNameVal = new StringVal(drName, 'name');
 
@@ -289,9 +281,9 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
               }
             } catch (ex) {
               Logger.error(JSON.stringify(ex));
+              Logger.error(ex.stack);
               console.log(
-                "There was some problem while updating the formula syntax, please check the all the formula's syntax once : " +
-                  formula
+                this.messages.getMessage('formulaSyntaxError', [formula])
               );
             }
           }

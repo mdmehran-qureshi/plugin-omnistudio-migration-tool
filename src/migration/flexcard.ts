@@ -21,6 +21,7 @@ import { createProgressBar } from './base';
 
 import { Constants } from '../utils/constants/stringContants';
 import { StorageUtil } from '../utils/storageUtil';
+import { getUpdatedAssessmentStatus } from '../utils/stringUtils';
 
 export class CardMigrationTool extends BaseMigrationTool implements MigrationTool {
   static readonly VLOCITYCARD_NAME = 'VlocityCard__c';
@@ -41,7 +42,7 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
   }
 
   getName(): string {
-    return 'FlexCards';
+    return 'Flexcards';
   }
 
   getRecordName(record: string) {
@@ -133,7 +134,7 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
 
     return [
       {
-        name: 'FlexCards',
+        name: 'Flexcards',
         records: records,
         results: cardUploadResponse,
       },
@@ -217,19 +218,20 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
     // Check for name changes due to API naming requirements
     const originalName: string = flexCardName;
     const cleanedName: string = this.cleanName(originalName);
-    let assessmentStatus: 'Ready for migration' | 'Warnings' | 'Needs Manual Intervention' = 'Ready for migration';
+    let assessmentStatus: 'Ready for migration' | 'Warnings' | 'Needs Manual Intervention' | 'Failed' =
+      'Ready for migration';
     flexCardAssessmentInfo.name = this.allVersions ? `${cleanedName}_${version}` : cleanedName;
     if (cleanedName !== originalName) {
       flexCardAssessmentInfo.warnings.push(
         this.messages.getMessage('cardNameChangeMessage', [originalName, cleanedName])
       );
-      assessmentStatus = 'Warnings';
+      assessmentStatus = getUpdatedAssessmentStatus(assessmentStatus, 'Warnings');
     }
 
     // Check for duplicate names
     if (uniqueNames.has(cleanedName)) {
       flexCardAssessmentInfo.warnings.push(this.messages.getMessage('duplicateCardNameMessage', [cleanedName]));
-      assessmentStatus = 'Needs Manual Intervention';
+      assessmentStatus = getUpdatedAssessmentStatus(assessmentStatus, 'Needs Manual Intervention');
     }
     uniqueNames.add(cleanedName);
 
@@ -241,7 +243,7 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
         flexCardAssessmentInfo.warnings.push(
           this.messages.getMessage('authordNameChangeMessage', [originalAuthor, cleanedAuthor])
         );
-        assessmentStatus = 'Warnings';
+        assessmentStatus = getUpdatedAssessmentStatus(assessmentStatus, 'Warnings');
       }
     }
 
@@ -279,7 +281,10 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
           flexCardAssessmentInfo.warnings.push(
             this.messages.getMessage('dataRaptorNameChangeMessage', [originalBundle, cleanedBundle])
           );
-          flexCardAssessmentInfo.migrationStatus = 'Warnings';
+          flexCardAssessmentInfo.migrationStatus = getUpdatedAssessmentStatus(
+            flexCardAssessmentInfo.migrationStatus,
+            'Warnings'
+          );
         }
       }
     } else if (dataSource.type === Constants.IntegrationProcedurePluralName) {
@@ -297,7 +302,10 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
           flexCardAssessmentInfo.warnings.push(
             this.messages.getMessage('integrationProcedureNameChangeMessage', [originalIpMethod, cleanedIpMethod])
           );
-          flexCardAssessmentInfo.migrationStatus = 'Warnings';
+          flexCardAssessmentInfo.migrationStatus = getUpdatedAssessmentStatus(
+            flexCardAssessmentInfo.migrationStatus,
+            'Warnings'
+          );
         }
 
         // Add warning for IP references with more than 2 parts (which potentially need manual updates)
@@ -305,7 +313,10 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
           flexCardAssessmentInfo.warnings.push(
             this.messages.getMessage('integrationProcedureManualUpdateMessage', [originalIpMethod])
           );
-          flexCardAssessmentInfo.migrationStatus = 'Needs Manual Intervention';
+          flexCardAssessmentInfo.migrationStatus = getUpdatedAssessmentStatus(
+            flexCardAssessmentInfo.migrationStatus,
+            'Needs Manual Intervention'
+          );
         }
       }
     } else if (dataSource.type === Constants.ApexRemoteComponentName) {
@@ -340,7 +351,10 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
                   flexCardAssessmentInfo.warnings.push(
                     this.messages.getMessage('omniScriptNameChangeMessage', [originalOsRef, cleanedOsRef])
                   );
-                  flexCardAssessmentInfo.migrationStatus = 'Warnings';
+                  flexCardAssessmentInfo.migrationStatus = getUpdatedAssessmentStatus(
+                    flexCardAssessmentInfo.migrationStatus,
+                    'Warnings'
+                  );
                 }
               }
             }
@@ -371,7 +385,10 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
           flexCardAssessmentInfo.warnings.push(
             this.messages.getMessage('cardNameChangeMessage', [childCardName, cleanedChildCardName])
           );
-          flexCardAssessmentInfo.migrationStatus = 'Warnings';
+          flexCardAssessmentInfo.migrationStatus = getUpdatedAssessmentStatus(
+            flexCardAssessmentInfo.migrationStatus,
+            'Warnings'
+          );
         }
       }
     } catch (err) {
@@ -756,7 +773,7 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
       const transformedCardAuthorName = transformedCard['AuthorName'];
 
       if (uniqueNames.has(transformedCard['Name'])) {
-        this.setRecordErrors(card, this.messages.getMessage('duplicatedCardName'));
+        this.setRecordErrors(card, this.messages.getMessage('duplicatedCardName', [transformedCard['Name']]));
         originalRecords.set(recordId, card);
         return;
       }
@@ -1153,7 +1170,7 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
     } else {
       // No registry mapping - use original fallback approach
       Logger.logVerbose(
-        `\n${this.messages.getMessage('componentMappingNotFound', ['OmniScript', fullOmniScriptName])}`
+        `\n${this.messages.getMessage('componentMappingNotFound', ['Omniscript', fullOmniScriptName])}`
       );
       omniscriptRef.type = this.cleanName(originalType);
       omniscriptRef.subtype = this.cleanName(originalSubtype);
@@ -1249,7 +1266,7 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
             } else {
               // No registry mapping - use original fallback approach
               Logger.logVerbose(
-                `\n${this.messages.getMessage('componentMappingNotFound', ['OmniScript', originalOsRef])}`
+                `\n${this.messages.getMessage('componentMappingNotFound', ['Omniscript', originalOsRef])}`
               );
               component.property.flyoutOmniScript.osName =
                 parts.length >= 3
@@ -1291,7 +1308,7 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
       } else {
         // No registry mapping - use original fallback approach
         Logger.logVerbose(
-          `\n${this.messages.getMessage('componentMappingNotFound', ['OmniScript', fullOmniScriptName])}`
+          `\n${this.messages.getMessage('componentMappingNotFound', ['Omniscript', fullOmniScriptName])}`
         );
         omniType.Name =
           parts.length >= 3
@@ -1325,7 +1342,7 @@ export class CardMigrationTool extends BaseMigrationTool implements MigrationToo
         }
       } else {
         // No registry mapping - use original fallback approach
-        Logger.logVerbose(this.messages.getMessage('componentMappingNotFound', ['OmniScript', fullOmniScriptName]));
+        Logger.logVerbose(this.messages.getMessage('componentMappingNotFound', ['Omniscript', fullOmniScriptName]));
         stateAction[fieldName] =
           parts.length >= 3
             ? `${this.cleanName(parts[0])}/${this.cleanName(parts[1])}/${parts[2]}`

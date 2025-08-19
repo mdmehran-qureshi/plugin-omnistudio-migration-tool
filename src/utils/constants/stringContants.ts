@@ -5,6 +5,7 @@ export const Constants = {
   IntegrationProcedure: 'ip',
   DataMapper: 'dm',
   GlobalAutoNumber: 'autonumber',
+  CustomLabel: 'cl',
   LWC: 'lwc',
   Apex: 'apex',
   FlexiPage: 'flexipage',
@@ -24,4 +25,6 @@ export const Constants = {
   ApexRemoteComponentName: 'ApexRemote',
   LWCComponentName: 'Lightning Web Component',
   ApexComponentName: 'Apex Classes',
+  CustomLabelComponentName: 'Custom Label',
+  CustomLabelPluralName: 'Custom Labels',
 };

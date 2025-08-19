@@ -27,16 +27,52 @@ export function formatUnicorn(
 
 export function getMigrationHeading(name: string): string {
   if (name.toLowerCase().includes('data')) {
-    return 'Data Mapper';
+    return 'DataMappers';
   } else if (name.toLowerCase().includes('flexcard')) {
-    return 'Flexcard';
+    return 'Flexcards';
   } else if (name.toLowerCase().includes('omniscript')) {
-    return 'OmniScript';
+    return 'Omniscripts';
   } else if (name.toLowerCase().includes('integration')) {
-    return 'Integration Procedure';
-  } else if (name.toLowerCase().includes('apex')) {
-    return 'Apex File';
+    return 'Integration Procedures';
+  } else if (name.toLowerCase().includes('autonumber')) {
+    return 'Global Auto Numbers';
   } else {
     return name;
   }
+}
+
+/**
+ * Escapes HTML special characters to prevent XSS and ensure content is displayed as plain text.
+ * Converts characters like <, >, &, ", ' to their HTML entity equivalents.
+ *
+ * @param text - The text to escape
+ * @returns The escaped HTML string
+ */
+export function escapeHtml(text: string): string {
+  if (!text) {
+    return '';
+  }
+
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const AssessmentStatusPriority = {
+  Failed: 0,
+  'Needs Manual Intervention': 1,
+  Warnings: 2,
+  'Ready for migration': 3,
+};
+
+export function getUpdatedAssessmentStatus(
+  currentStatus: 'Warnings' | 'Needs Manual Intervention' | 'Ready for migration' | 'Failed',
+  newStatus: 'Warnings' | 'Needs Manual Intervention' | 'Ready for migration' | 'Failed'
+): 'Warnings' | 'Needs Manual Intervention' | 'Ready for migration' | 'Failed' {
+  const currentPriority = AssessmentStatusPriority[currentStatus];
+  const newPriority = AssessmentStatusPriority[newStatus];
+  return currentPriority > newPriority ? newStatus : currentStatus;
 }

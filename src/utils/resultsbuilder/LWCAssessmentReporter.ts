@@ -10,6 +10,7 @@ import {
 } from '../reportGenerator/reportInterfaces';
 import { createFilterGroupParam, createRowDataParam, getOrgDetailsForReport } from '../reportGenerator/reportUtil';
 import { FileDiffUtil } from '../lwcparser/fileutils/FileDiffUtil';
+import { reportingHelper } from './reportingHelper';
 
 export class LWCAssessmentReporter {
   private static rowId = 0;
@@ -28,6 +29,7 @@ export class LWCAssessmentReporter {
       filterGroups: this.getFilterGroupsForReport(lwcAssessmentInfos),
       headerGroups: this.getHeaderGroupsForReport(),
       rows: this.getRowsForReport(lwcAssessmentInfos),
+      callToAction: reportingHelper.getCallToAction(lwcAssessmentInfos),
     };
   }
 

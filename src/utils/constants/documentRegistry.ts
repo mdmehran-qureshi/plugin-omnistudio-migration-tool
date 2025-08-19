@@ -60,4 +60,6 @@ export const documentRegistry = {
     'https://help.salesforce.com/s/articleView?id=xcloud.os_omnistudio_naming_conventions.htm&type=5',
   reservedKeysFoundInPropertySet:
     'https://help.salesforce.com/s/articleView?id=xcloud.os_omnistudio_naming_conventions.htm&type=5',
+  manualDeploymentSteps:
+    'https://help.salesforce.com/s/articleView?id=xcloud.os_standard_set_up_your_environment_for_customizing_omniscript_elements.htm&type=5',
 };

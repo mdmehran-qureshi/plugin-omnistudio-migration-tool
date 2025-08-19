@@ -1,4 +1,5 @@
 import { OmnistudioOrgDetails } from '../orgUtils';
+import { escapeHtml } from '../stringUtils';
 import { FilterGroupParam, OrgParam, ReportDataParam } from './reportInterfaces';
 
 export function createRowDataParam(
@@ -10,16 +11,20 @@ export function createRowDataParam(
   isHref: boolean,
   uri?: string,
   title?: string | string[],
-  customClass?: string
+  customClass?: string,
+  escapeHtmlContent?: boolean
 ): ReportDataParam {
   if (title && Array.isArray(title)) {
     title = title.filter((t) => t?.trim?.());
   }
 
+  const processedValue = escapeHtmlContent ? escapeHtml(value) : value;
+  const processedTitle = title || (escapeHtmlContent ? escapeHtml(value?.toString() || '') : value?.toString() || '');
+
   return {
     key,
-    value,
-    title: title || value?.toString() || '',
+    value: processedValue,
+    title: processedTitle,
     searchable,
     rowspan,
     colspan,

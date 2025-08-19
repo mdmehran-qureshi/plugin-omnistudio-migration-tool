@@ -158,7 +158,7 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
 
       // Verify duplicated names before trying to submitt
       if (duplicatedNames.has(transformedDataRaptor['Name'])) {
-        this.setRecordErrors(dr, this.messages.getMessage('duplicatedDrName'));
+        this.setRecordErrors(dr, this.messages.getMessage('duplicatedDrName', [transformedDataRaptor['Name']]));
         originalDrRecords.set(recordId, dr);
         continue;
       }
@@ -187,10 +187,7 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
       if (drUploadResponse && drUploadResponse.success === true) {
         const items = await this.getItemsForDataRaptor(dataRaptorItemsData, name, drUploadResponse.id);
 
-        // Check for name changes
-        if (transformedDataRaptor[DRBundleMappings.Name] !== dr['Name']) {
-          drUploadResponse.newName = transformedDataRaptor[DRBundleMappings.Name];
-        }
+        drUploadResponse.newName = transformedDataRaptor[DRBundleMappings.Name];
 
         // Move the items
         await this.uploadTransformedData(DataRaptorMigrationTool.OMNIDATATRANSFORMITEM_NAME, items);
@@ -214,7 +211,7 @@ export class DataRaptorMigrationTool extends BaseMigrationTool implements Migrat
     progressBar.stop();
 
     return {
-      name: 'Data Mapper',
+      name: 'DataMappers',
       results: drUploadInfo,
       records: originalDrRecords,
     };

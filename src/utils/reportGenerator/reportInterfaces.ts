@@ -82,4 +82,13 @@ export interface ReportParam {
   rows: ReportRowParam[];
   rollbackFlags?: string[];
   callToAction?: CTASummary[];
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    pageSize: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    nextPageFile?: string;
+    previousPageFile?: string;
+  };
 }

@@ -354,7 +354,7 @@ describe('FlexipageMigration', () => {
         name: fileName,
         diff: JSON.stringify('mock-diff'),
         errors: [],
-        status: 'Complete',
+        status: 'Successfully migrated',
       });
     });
 

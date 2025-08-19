@@ -184,6 +184,148 @@
           </tbody>
         </table>
       </div>
+      
+      <!-- Pagination Navigation -->
+      <c:if exp={$pagination_currentPage}>
+        <div class="pagination-container" style="margin-top: 20px; text-align: center;">
+          <div class="pagination-info" style="margin-bottom: 10px; color: #666;">
+            Page {{pagination_currentPage}} of {{pagination_totalPages}} 
+            ({{pagination_pageSize}} items per page)
+          </div>
+          
+          <div class="pagination-controls">
+            <c:if exp={$pagination_hasPreviousPage}>
+              <a href="{{pagination_previousPageHref}}" class="pagination-btn" style="
+                display: inline-block;
+                padding: 8px 16px;
+                margin: 0 5px;
+                background-color: #0070d2;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+                font-weight: bold;
+              ">&larr; Previous</a>
+            </c:if>
+            
+            <span class="current-page" style="
+              display: inline-block;
+              padding: 8px 16px;
+              margin: 0 5px;
+              background-color: #f3f2f2;
+              color: #333;
+              border-radius: 4px;
+              font-weight: bold;
+            ">{{pagination_currentPage}}</span>
+            
+            <c:if exp={$pagination_hasNextPage}>
+              <a href="{{pagination_nextPageHref}}" class="pagination-btn" style="
+                display: inline-block;
+                padding: 8px 16px;
+                margin: 0 5px;
+                background-color: #0070d2;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+                font-weight: bold;
+              ">Next &rarr;</a>
+            </c:if>
+          </div>
+          
+          <div class="pagination-jump" style="margin-top: 10px;">
+            <span style="color: #666; margin-right: 10px;">Jump to page:</span>
+            
+            <!-- Always show first page -->
+            <a href="{{pagination_page_1_href}}" style="
+              display: inline-block;
+              padding: 4px 8px;
+              margin: 0 2px;
+              background-color: {{pagination_page_1_isCurrent ? '#0070d2' : '#f3f2f2'}};
+              color: {{pagination_page_1_isCurrent ? 'white' : '#333'}};
+              text-decoration: none;
+              border-radius: 2px;
+              font-size: 12px;
+            ">1</a>
+            
+            <!-- Show ellipsis if needed -->
+            <c:if exp={$pagination_showFirstEllipsis}>
+              <span style="color: #666; margin: 0 5px;">...</span>
+            </c:if>
+            
+            <!-- Show pages 2-4 if they exist -->
+            <c:if exp={$pagination_page_2_href}>
+              <a href="{{pagination_page_2_href}}" style="
+                display: inline-block;
+                padding: 4px 8px;
+                margin: 0 2px;
+                background-color: {{pagination_page_2_isCurrent ? '#0070d2' : '#f3f2f2'}};
+                color: {{pagination_page_2_isCurrent ? 'white' : '#333'}};
+                text-decoration: none;
+                border-radius: 2px;
+                font-size: 12px;
+              ">2</a>
+            </c:if>
+            
+            <c:if exp={$pagination_page_3_href}>
+              <a href="{{pagination_page_3_href}}" style="
+                display: inline-block;
+                padding: 4px 8px;
+                margin: 0 2px;
+                background-color: {{pagination_page_3_isCurrent ? '#0070d2' : '#f3f2f2'}};
+                color: {{pagination_page_3_isCurrent ? 'white' : '#333'}};
+                text-decoration: none;
+                border-radius: 2px;
+                font-size: 12px;
+              ">3</a>
+            </c:if>
+            
+            <c:if exp={$pagination_page_4_href}>
+              <a href="{{pagination_page_4_href}}" style="
+                display: inline-block;
+                padding: 4px 8px;
+                margin: 0 2px;
+                background-color: {{pagination_page_4_isCurrent ? '#0070d2' : '#f3f2f2'}};
+                color: {{pagination_page_4_isCurrent ? 'white' : '#333'}};
+                text-decoration: none;
+                border-radius: 2px;
+                font-size: 12px;
+              ">4</a>
+            </c:if>
+            
+            <c:if exp={$pagination_page_5_href}>
+              <a href="{{pagination_page_5_href}}" style="
+                display: inline-block;
+                padding: 4px 8px;
+                margin: 0 2px;
+                background-color: {{pagination_page_5_isCurrent ? '#0070d2' : '#f3f2f2'}};
+                color: {{pagination_page_5_isCurrent ? 'white' : '#333'}};
+                text-decoration: none;
+                border-radius: 2px;
+                font-size: 12px;
+              ">5</a>
+            </c:if>
+            
+            <!-- Show ellipsis if needed -->
+            <c:if exp={$pagination_showLastEllipsis}>
+              <span style="color: #666; margin: 0 5px;">...</span>
+            </c:if>
+            
+            <!-- Always show last page if different from first 5 -->
+            <c:if exp={$pagination_totalPages > 5}>
+              <a href="{{pagination_page_{{pagination_totalPages}}_href}}" style="
+                display: inline-block;
+                padding: 4px 8px;
+                margin: 0 2px;
+                background-color: {{pagination_page_{{pagination_totalPages}}_isCurrent ? '#0070d2' : '#f3f2f2'}};
+                color: {{pagination_page_{{pagination_totalPages}}_isCurrent ? 'white' : '#333'}};
+                text-decoration: none;
+                border-radius: 2px;
+                font-size: 12px;
+              ">{{pagination_totalPages}}</a>
+            </c:if>
+          </div>
+        </div>
+      </c:if>
+      
       <c:if exp={Array.isArray($rollbackFlags)}>
         <div class="slds-box" style="background-color: white; margin-top: 20px">
           <div class="migration-message">

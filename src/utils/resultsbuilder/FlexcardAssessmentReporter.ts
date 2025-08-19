@@ -9,6 +9,7 @@ import {
   SummaryItemDetailParam,
 } from '../reportGenerator/reportInterfaces';
 import { createFilterGroupParam, createRowDataParam, getOrgDetailsForReport } from '../reportGenerator/reportUtil';
+import { reportingHelper } from './reportingHelper';
 
 export class FlexcardAssessmentReporter {
   private static rowId = 0;
@@ -28,6 +29,7 @@ export class FlexcardAssessmentReporter {
       filterGroups: this.getFilterGroupsForReport(flexCardAssessmentInfos),
       headerGroups: this.getHeaderGroupsForReport(),
       rows: this.getRowsForReport(flexCardAssessmentInfos, instanceUrl),
+      callToAction: reportingHelper.getCallToAction(flexCardAssessmentInfos),
     };
   }
 

@@ -77,11 +77,13 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
     this.allVersions = allVersions;
   }
 
-  getName(): string {
+  getName(
+    singular: boolean = false
+  ): 'Integration Procedures' | 'Integration Procedure' | 'Omniscripts' | 'Omniscript' {
     if (this.exportType === OmniScriptExportType.IP) {
-      return 'Integration Procedures';
+      return singular ? 'Integration Procedure' : 'Integration Procedures';
     } else if (this.exportType === OmniScriptExportType.OS) {
-      return 'OmniScripts';
+      return singular ? 'Omniscript' : 'Omniscripts';
     }
   }
 
@@ -703,7 +705,7 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
     let osUploadInfo = new Map<string, UploadRecordResult>();
     const exportComponentType = this.getName() as ComponentType;
     Logger.log(this.messages.getMessage('foundOmniScriptsToMigrate', [omniscripts.length, exportComponentType]));
-    const progressBarType: ComponentType = exportComponentType;
+    const progressBarType = exportComponentType;
     const progressBar = createProgressBar('Migrating', progressBarType);
     let progressCounter = 0;
     progressBar.start(omniscripts.length, progressCounter);
@@ -944,17 +946,17 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
       }
 
       if (duplicatedNames.has(mappedOsName)) {
-        this.setRecordErrors(omniscript, this.messages.getMessage('duplicatedOSName'));
         originalOsRecords.set(recordId, omniscript);
-        const warningMessage = this.messages.getMessage('duplicatedOSName');
+        const warningMessage = this.messages.getMessage('duplicatedOSName', [this.getName(true), mappedOsName]);
         const skippedResponse: UploadRecordResult = {
           referenceId: recordId,
           id: '',
           success: false,
-          hasErrors: true,
-          errors: [warningMessage],
-          warnings: [],
+          hasErrors: false,
+          errors: [],
+          warnings: [warningMessage],
           newName: '',
+          skipped: true,
         };
         osUploadInfo.set(recordId, skippedResponse);
         continue;
@@ -1010,7 +1012,7 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
         // Only add warning if the name was actually modified
         if (originalOsName !== mappedOsName) {
           osUploadResponse.warnings.unshift(
-            'WARNING: OmniScript name has been modified to fit naming rules: ' + mappedOsName
+            `${this.getName(true)} name has been modified to fit naming rules: ${mappedOsName}`
           );
         }
 
@@ -1047,7 +1049,9 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
               osUploadResponse.hasErrors = true;
               osUploadResponse.errors = osUploadResponse.errors || [];
 
-              osUploadResponse.errors.push(this.messages.getMessage('errorWhileActivatingOs') + updateResult.errors);
+              osUploadResponse.errors.push(
+                this.messages.getMessage('errorWhileActivatingOs', [this.getName(true)]) + updateResult.errors
+              );
             }
           }
         } catch (e) {
@@ -1070,7 +1074,9 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
             }
           }
 
-          osUploadResponse.errors.push(this.messages.getMessage('errorWhileCreatingElements') + error);
+          osUploadResponse.errors.push(
+            this.messages.getMessage('errorWhileCreatingElements', [this.getName(true)]) + error
+          );
         } finally {
           // Create the return records and response which have been processed
           osUploadInfo.set(recordId, osUploadResponse);
@@ -1094,7 +1100,7 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
       );
     }
     if (this.exportType === OmniScriptExportType.All || this.exportType === OmniScriptExportType.OS) {
-      objectMigrationResults.push(this.getMigratedRecordsByType('OmniScripts', osUploadInfo, originalOsRecords));
+      objectMigrationResults.push(this.getMigratedRecordsByType('Omniscripts', osUploadInfo, originalOsRecords));
     }
 
     return objectMigrationResults;
@@ -1113,7 +1119,7 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
     for (let record of Array.from(records.values())) {
       if (
         (type === 'Integration Procedures' && record[`${this.namespacePrefix}IsProcedure__c`]) ||
-        (type === 'OmniScripts' && !record[`${this.namespacePrefix}IsProcedure__c`])
+        (type === 'Omniscripts' && !record[`${this.namespacePrefix}IsProcedure__c`])
       ) {
         recordMap.set(record['Id'], records.get(record['Id']));
         if (results.get(record['Id'])) {
@@ -1161,7 +1167,7 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
 
           let finalKey = `${oldrecord[this.namespacePrefix + 'Type__c']}${
             oldrecord[this.namespacePrefix + 'SubType__c']
-          }${oldrecord[this.namespacePrefix + 'Language__c']}`;
+          }${this.cleanLanguageName(oldrecord[this.namespacePrefix + 'Language__c'])}`;
 
           finalKey = finalKey.toLowerCase();
           if (storage.osStorage.has(finalKey)) {

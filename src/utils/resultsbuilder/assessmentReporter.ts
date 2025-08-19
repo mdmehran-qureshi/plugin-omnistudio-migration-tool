@@ -11,6 +11,8 @@ import { Constants } from '../constants/stringContants';
 import { pushAssestUtilites } from '../file/fileUtil';
 import { TemplateParser } from '../templateParser/generate';
 import { getOrgDetailsForReport } from '../reportGenerator/reportUtil';
+import { CustomLabelAssessmentInfo } from '../customLabels';
+import { Logger } from '../logger';
 import { OSAssessmentReporter } from './OSAssessmentReporter';
 import { ApexAssessmentReporter } from './ApexAssessmentReporter';
 import { IPAssessmentReporter } from './IPAssessmentReporter';
@@ -20,6 +22,7 @@ import { LWCAssessmentReporter } from './LWCAssessmentReporter';
 import { GlobalAutoNumberAssessmentReporter } from './GlobalAutoNumberAssessmentReporter';
 import { FlexipageAssessmentReporter } from './FlexipageAssessmentReporter';
 import { ExperienceSiteAssessmentReporter } from './ExperienceSiteAssessmentReporter';
+import { CustomLabelAssessmentReporter } from './CustomLabelAssessmentReporter';
 
 export class AssessmentReporter {
   private static basePath = path.join(process.cwd(), 'assessment_reports');
@@ -34,6 +37,7 @@ export class AssessmentReporter {
   private static templateDir = 'templates';
   private static experienceSiteAssessmentFileName = 'experience_site_assessment.html';
   private static flexipageAssessmentFileName = 'flexipage_assessment.html';
+  private static customLabelAssessmentFileName = 'customlabel_assessment.html';
   private static dashboardTemplateName = 'dashboard.template';
   private static reportTemplateName = 'assessmentReport.template';
   private static dashboardTemplate = path.join(__dirname, '..', '..', this.templateDir, this.dashboardTemplateName);
@@ -60,7 +64,8 @@ export class AssessmentReporter {
         Constants.Flexcard,
         Constants.IntegrationProcedure,
         Constants.DataMapper,
-        Constants.GlobalAutoNumber
+        Constants.GlobalAutoNumber,
+        Constants.CustomLabel
       );
       this.createDocument(
         path.join(this.basePath, this.omniscriptAssessmentFileName),
@@ -125,6 +130,16 @@ export class AssessmentReporter {
           ),
           messages
         )
+      );
+
+      // Generate custom labels report with pagination (empty if no labels need manual intervention)
+      const customLabels = result.customLabelAssessmentInfos || [];
+      this.generateCustomLabelAssessmentReport(
+        customLabels,
+        instanceUrl,
+        omnistudioOrgDetails,
+        messages,
+        assessmentReportTemplate
       );
     } else {
       switch (assessOnly) {
@@ -208,6 +223,17 @@ export class AssessmentReporter {
           );
           break;
 
+        case Constants.CustomLabel:
+          reports.push(Constants.CustomLabel);
+          this.generateCustomLabelAssessmentReport(
+            result.customLabelAssessmentInfos,
+            instanceUrl,
+            omnistudioOrgDetails,
+            messages,
+            assessmentReportTemplate
+          );
+          break;
+
         default:
       }
     }
@@ -268,6 +294,47 @@ export class AssessmentReporter {
     pushAssestUtilites('javascripts', this.basePath);
     pushAssestUtilites('styles', this.basePath);
     await open(path.join(this.basePath, this.dashboardFileName));
+  }
+
+  private static generateCustomLabelAssessmentReport(
+    customLabels: CustomLabelAssessmentInfo[],
+    instanceUrl: string,
+    omnistudioOrgDetails: OmnistudioOrgDetails,
+    messages: Messages,
+    assessmentReportTemplate: string
+  ): void {
+    const pageSize = 1000;
+    const totalLabels = customLabels.length;
+    const totalPages = Math.ceil(totalLabels / pageSize);
+
+    // Generate paginated reports
+    for (let page = 1; page <= totalPages; page++) {
+      const data = CustomLabelAssessmentReporter.getCustomLabelAssessmentData(
+        customLabels,
+        instanceUrl,
+        omnistudioOrgDetails,
+        page,
+        pageSize
+      );
+
+      const html = TemplateParser.generate(assessmentReportTemplate, data, messages);
+
+      const fileName =
+        totalPages > 1
+          ? `customlabel_assessment_Page_${page}_of_${totalPages}.html`
+          : this.customLabelAssessmentFileName;
+      fs.writeFileSync(path.join(this.basePath, fileName), html);
+
+      Logger.logVerbose(
+        messages.getMessage('generatedCustomLabelAssessmentReportPage', [page, totalPages, data.rows.length])
+      );
+    }
+  }
+
+  private static getCustomLabelAssessmentFileName(totalLabels: number): string {
+    const pageSize = 1000;
+    const totalPages = Math.ceil(totalLabels / pageSize);
+    return totalPages > 1 ? `customlabel_assessment_Page_1_of_${totalPages}.html` : this.customLabelAssessmentFileName;
   }
 
   private static createDashboard(
@@ -367,6 +434,25 @@ export class AssessmentReporter {
         total: result.lwcAssessmentInfos.length,
         data: LWCAssessmentReporter.getSummaryData(result.lwcAssessmentInfos),
         file: this.lwcAssessmentFileName,
+      });
+    }
+    if (reports.includes(Constants.CustomLabel)) {
+      summaryItems.push({
+        name: 'Custom Labels',
+        total: result.customLabelStatistics.totalLabels,
+        data: [
+          {
+            name: 'Can be Automated',
+            count: result.customLabelStatistics.canBeAutomated,
+            cssClass: 'text-success',
+          },
+          {
+            name: 'Need Manual Intervention',
+            count: result.customLabelStatistics.needManualIntervention,
+            cssClass: 'text-warning',
+          },
+        ],
+        file: this.getCustomLabelAssessmentFileName(result.customLabelStatistics.needManualIntervention),
       });
     }
     return {

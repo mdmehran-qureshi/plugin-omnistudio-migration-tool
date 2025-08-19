@@ -128,11 +128,11 @@ function createNewPropsForOmniScript(
   }
 
   if (!migratedScriptName) {
-    throw new KeyNotFoundInStorageError(nameKey, 'OmniScript');
+    throw new KeyNotFoundInStorageError(nameKey, 'Omniscript');
   }
 
   if (migratedScriptName.isDuplicate) {
-    throw new DuplicateKeyError(nameKey, 'OmniScript');
+    throw new DuplicateKeyError(nameKey, 'Omniscript');
   }
 
   const newProps = {

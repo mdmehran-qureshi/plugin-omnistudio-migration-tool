@@ -73,9 +73,10 @@ export class LwcMigration extends BaseRelatedObjectMigration {
         : createProgressBar('Assessing', Constants.LWCComponentName as ComponentType);
     progressBar.start(fileMap.size, 0);
     let progressCounter = 0;
-    try {
-      const jsonData: LWCAssessmentInfo[] = [];
-      fileMap.forEach((fileList, dir) => {
+    const jsonData: LWCAssessmentInfo[] = [];
+    const errors: Set<string> = new Set();
+    fileMap.forEach((fileList, dir) => {
+      try {
         const changeInfos: FileChangeInfo[] = [];
         if (
           dir !== Constants.LWC &&
@@ -118,13 +119,23 @@ export class LwcMigration extends BaseRelatedObjectMigration {
           }
         }
         progressBar.update(++progressCounter);
-      });
-      progressBar.stop();
-      return jsonData;
-    } catch (error) {
-      progressBar.stop();
-      Logger.error(assessMessages.getMessage('errorProcessingFiles'), error);
-    }
+      } catch (error) {
+        jsonData.push({
+          name: dir,
+          changeInfos: [],
+          errors: [error instanceof Error ? error.message : String(error)],
+          warnings: [],
+        });
+        errors.add(
+          `${assessMessages.getMessage('errorProcessingFiles')} Error: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+        progressBar.update(++progressCounter);
+      }
+    });
+    progressBar.stop();
+    return jsonData;
   }
 
   private isValideFile(filename: string): boolean {

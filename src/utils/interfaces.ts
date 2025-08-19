@@ -1,4 +1,5 @@
 import { File } from '../utils/file/fileUtil';
+import { CustomLabelAssessmentInfo, CustomLabelStatistics } from './customLabels';
 
 export interface MigratedObject {
   name: string;
@@ -9,11 +10,18 @@ export interface MigratedObject {
 export interface MigratedRecordInfo {
   id: string;
   name: string;
-  status: 'Ready for migration' | 'Failed' | 'Skipped' | 'Complete' | 'Needs Manual Intervention' | 'Warnings';
+  status:
+    | 'Ready for migration'
+    | 'Failed'
+    | 'Skipped'
+    | 'Successfully migrated'
+    | 'Needs Manual Intervention'
+    | 'Warnings';
   errors: string[];
   migratedId?: string;
   migratedName?: string;
   warnings: string[];
+  localizationStatus?: Record<string, string>;
 }
 
 export interface DiffPair {
@@ -104,6 +112,8 @@ export interface AssessmentInfo {
   experienceSiteAssessmentInfos: ExperienceSiteAssessmentInfo[];
   flexipageAssessmentInfos: FlexiPageAssessmentInfo[];
   globalAutoNumberAssessmentInfos: GlobalAutoNumberAssessmentInfo[];
+  customLabelAssessmentInfos: CustomLabelAssessmentInfo[];
+  customLabelStatistics: CustomLabelStatistics;
 }
 
 export interface RelatedObjectAssesmentInfo {
@@ -182,7 +192,7 @@ export interface ExperienceSiteAssessmentInfo extends FileChangeInfo {
   infos: string[];
   hasOmnistudioContent: boolean;
   errors: string[];
-  status: 'Ready for migration' | 'Failed' | 'Complete' | 'Needs Manual Intervention';
+  status: 'Ready for migration' | 'Failed' | 'Successfully migrated' | 'Needs Manual Intervention' | 'Skipped';
 }
 
 export interface FileProcessor {
@@ -244,5 +254,11 @@ export interface QueryResult {
 
 export interface FlexiPageAssessmentInfo extends FileChangeInfo {
   errors: string[];
-  status: 'Ready for migration' | 'Failed' | 'Warnings' | 'Complete' | 'Needs Manual Intervention';
+  status:
+    | 'Ready for migration'
+    | 'Failed'
+    | 'Warnings'
+    | 'Successfully migrated'
+    | 'Needs Manual Intervention'
+    | 'Skipped';
 }

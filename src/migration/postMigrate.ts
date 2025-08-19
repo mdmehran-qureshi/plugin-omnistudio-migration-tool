@@ -192,6 +192,7 @@ export class PostMigrate extends BaseMigrationTool {
         this.deploymentConfig.authKey
       );
       deployer.deploy();
+      Logger.logVerbose('Deployment completed');
     } catch (error) {
       Logger.error(this.messages.getMessage('errorDeployingComponents'), error);
     }

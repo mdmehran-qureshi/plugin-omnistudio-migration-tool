@@ -39,6 +39,7 @@ const titles = {
   integrationProcedureNameChangeMessage: 'Update References to Omnistudio Components After Migration',
   integrationProcedureManualUpdateMessage: 'Update References to Omnistudio Components After Migration',
   duplicateCardNameMessage: 'Clone a Flexcard',
+  manualDeploymentSteps: 'Set Up Your Environment to Customize Omniscript Elements',
 };
 
 describe('DocumentRegistry', () => {
@@ -60,7 +61,7 @@ describe('DocumentRegistry', () => {
         });
         const page = await browser.newPage();
         try {
-          await page.goto(url, { waitUntil: 'networkidle2', timeout: 15000 });
+          await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
           const content = await page.content();
           const notFoundText = "couldn't find that page.";
           const isValid = !content.includes(notFoundText);
@@ -94,7 +95,7 @@ describe('DocumentRegistry', () => {
     Object.entries(documentRegistry).forEach(([key, url]: [string, string]) => {
       it(`should have a valid URL for ${key}`, async function () {
         // Increase timeout for network requests
-        this.timeout(20000);
+        this.timeout(30000);
         const isValid = urlCheckCache.has(url)
           ? urlCheckCache.get(url)
           : await checkSalesforceUrlWithPuppeteer(key, url);
@@ -138,6 +139,7 @@ describe('DocumentRegistry', () => {
         'integrationProcedureNameChangeMessage',
         'integrationProcedureManualUpdateMessage',
         'duplicateCardNameMessage',
+        'manualDeploymentSteps',
       ];
 
       expectedKeys.forEach((key) => {

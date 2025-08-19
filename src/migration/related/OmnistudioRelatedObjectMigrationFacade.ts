@@ -106,7 +106,17 @@ export default class OmnistudioRelatedObjectMigrationFacade {
     );
 
     Logger.logVerbose(migrateMessages.getMessage('retrievingMetadata', [String(relatedObjects), this.projectPath]));
-    this.retrieveMetadata(relatedObjects);
+    try {
+      this.retrieveMetadata(relatedObjects);
+    } catch (error) {
+      Logger.error('Error retrieving metadata', error);
+      return {
+        apexAssessmentInfos: [],
+        lwcAssessmentInfos: [],
+        experienceSiteAssessmentInfos: [],
+        flexipageAssessmentInfos: [],
+      };
+    }
 
     const debugTimer = DebugTimer.getInstance();
     debugTimer.start();

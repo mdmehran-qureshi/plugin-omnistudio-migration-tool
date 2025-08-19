@@ -111,6 +111,14 @@ export class ApexMigration extends BaseRelatedObjectMigration {
         Logger.logVerbose(assessMessages.getMessage('successfullyProcessedApexFile', [file.name]));
         progressBar.update(++progressCounter);
       } catch (err) {
+        fileAssessmentInfo.push({
+          name: file.name,
+          errors: [err instanceof Error ? err.message : String(err)],
+          warnings: [],
+          infos: [],
+          path: file.location,
+          diff: '',
+        });
         processingErrorsList.push(assessMessages.getMessage('errorProcessingApexFile', [file.name]));
         progressBar.update(++progressCounter);
       }
@@ -145,10 +153,18 @@ export class ApexMigration extends BaseRelatedObjectMigration {
 
     if (tokenUpdatesForRemoteCalls && tokenUpdatesForRemoteCalls.length > 0) {
       tokenUpdates.push(...tokenUpdatesForRemoteCalls);
-      updateMessages.push(assessMessages.getMessage('fileUpdatedToAllowRemoteCalls'));
+      if (type === 'migration') {
+        updateMessages.push(migrateMessages.getMessage('fileUpdatedToAllowRemoteCalls'));
+      } else {
+        updateMessages.push(assessMessages.getMessage('fileUpdatedToAllowRemoteCalls'));
+      }
     }
     if (tokeUpdatesForMethodCalls && tokeUpdatesForMethodCalls.length > 0) {
-      updateMessages.push(assessMessages.getMessage('fileUpdatedToAllowCalls'));
+      if (type === 'migration') {
+        updateMessages.push(migrateMessages.getMessage('fileUpdatedToAllowCalls'));
+      } else {
+        updateMessages.push(assessMessages.getMessage('fileUpdatedToAllowCalls'));
+      }
       tokenUpdates.push(...tokeUpdatesForMethodCalls);
     }
     let difference = [];
@@ -199,12 +215,20 @@ export class ApexMigration extends BaseRelatedObjectMigration {
       Logger.logger.info(assessMessages.getMessage('apexFileImplementsVlocityOpenInterface2', [file.name]));
       const tokens = implementsInterface.get(this.vlocityOpenInterface2);
       tokenUpdates.push(new RangeTokenUpdate(CALLABLE, tokens[0], tokens[1]));
-      tokenUpdates.push(new InsertAfterTokenUpdate(this.callMethodBody(), parser.classDeclaration));
+      if (!parser.hasCallMethodImplemented) {
+        tokenUpdates.push(new InsertAfterTokenUpdate(this.callMethodBody(), parser.classDeclaration));
+      } else {
+        Logger.logger.info(assessMessages.getMessage('apexFileAlreadyHasCallMethod', [file.name]));
+      }
     } else if (implementsInterface.has(this.vlocityOpenInterface)) {
       Logger.logger.info(assessMessages.getMessage('fileImplementsVlocityOpenInterface', [file.name]));
       const tokens = implementsInterface.get(this.vlocityOpenInterface);
       tokenUpdates.push(new RangeTokenUpdate(CALLABLE, tokens[0], tokens[1]));
-      tokenUpdates.push(new InsertAfterTokenUpdate(this.callMethodBody(), parser.classDeclaration));
+      if (!parser.hasCallMethodImplemented) {
+        tokenUpdates.push(new InsertAfterTokenUpdate(this.callMethodBody(), parser.classDeclaration));
+      } else {
+        Logger.logger.info(assessMessages.getMessage('apexFileAlreadyHasCallMethod', [file.name]));
+      }
     }
     return tokenUpdates;
   }

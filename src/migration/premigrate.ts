@@ -5,6 +5,7 @@ import { Constants } from '../utils/constants/stringContants';
 import { OrgPreferences } from '../utils/orgPreferences';
 import { askStringWithTimeout, PromptUtil } from '../utils/promptUtil';
 import { YES_SHORT, YES_LONG, NO_SHORT, NO_LONG } from '../utils/projectPathUtil';
+import { documentRegistry } from '../utils/constants/documentRegistry';
 import { BaseMigrationTool } from './base';
 
 const authEnvKey = 'OMA_AUTH_KEY';
@@ -94,6 +95,15 @@ export class PreMigrate extends BaseMigrationTool {
         Logger.warn(this.messages.getMessage('authKeyEnvVarNotSet'));
         actionItems.push(this.messages.getMessage('authKeyEnvVarNotSet'));
       }
+    }
+
+    if (!consent) {
+      Logger.warn(this.messages.getMessage('deploymentConsentNotGiven'));
+      actionItems.push(this.messages.getMessage('deploymentConsentNotGiven'));
+    }
+
+    if (!consent || (includeLwc && !deploymentConfig.authKey)) {
+      actionItems.push(this.messages.getMessage('manualDeploymentSteps', [documentRegistry.manualDeploymentSteps]));
     }
 
     return deploymentConfig;

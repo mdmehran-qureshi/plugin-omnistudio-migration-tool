@@ -464,6 +464,15 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
       ? 'Integration Procedure'
       : 'OmniScript';
 
+    // Check if this is an Angular OmniScript first - if so, skip duplicate name checks
+    let isAngularOmniScript = false;
+    if (omniProcessType === this.OMNISCRIPT) {
+      const type = omniscript[this.namespacePrefix + 'IsLwcEnabled__c'] ? 'LWC' : 'Angular';
+      if (type === 'Angular') {
+        isAngularOmniScript = true;
+      }
+    }
+
     const existingType = omniscript[this.namespacePrefix + 'Type__c'];
     const existingTypeVal = new StringVal(existingType, 'type');
     const existingSubType = omniscript[this.namespacePrefix + 'SubType__c'];
@@ -532,7 +541,9 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
     }
     if (!existingSubTypeVal.isNameCleaned()) {
       if (omniProcessType === 'Integration Procedure' && (!newSubType || newSubType.trim() === '')) {
-        warnings.push(this.messages.getMessage('integrationProcedureSubtypeEmptyAfterCleaning', [existingSubTypeVal.val]));
+        warnings.push(
+          this.messages.getMessage('integrationProcedureSubtypeEmptyAfterCleaning', [existingSubTypeVal.val])
+        );
         assessmentStatus = 'Needs Manual Intervention';
       } else {
         warnings.push(
@@ -556,11 +567,14 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
       );
       assessmentStatus = 'Warnings';
     }
-    if (existingOmniscriptNames.has(recordName)) {
-      warnings.push(this.messages.getMessage('duplicatedName') + '  ' + recordName);
-      assessmentStatus = 'Needs Manual Intervention';
-    } else {
-      existingOmniscriptNames.add(recordName);
+    // Skip duplicate name check for Angular OmniScripts since they won't be migrated
+    if (!isAngularOmniScript) {
+      if (existingOmniscriptNames.has(recordName)) {
+        warnings.push(this.messages.getMessage('duplicatedName') + '  ' + recordName);
+        assessmentStatus = 'Needs Manual Intervention';
+      } else {
+        existingOmniscriptNames.add(recordName);
+      }
     }
 
     // Add warning for duplicate element names within the same OmniScript
@@ -577,12 +591,9 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
       assessmentStatus = 'Needs Manual Intervention';
     }
 
-    if (omniProcessType === this.OMNISCRIPT) {
-      const type = omniscript[this.namespacePrefix + 'IsLwcEnabled__c'] ? 'LWC' : 'Angular';
-      if (type === 'Angular') {
-        warnings.unshift(this.messages.getMessage('angularOSWarning'));
-        assessmentStatus = 'Needs Manual Intervention';
-      }
+    if (isAngularOmniScript) {
+      warnings.unshift(this.messages.getMessage('angularOSWarning'));
+      assessmentStatus = 'Needs Manual Intervention';
     }
 
     const result: OSAssessmentInfo = {
@@ -869,7 +880,10 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
         const originalType = omniscript[this.namespacePrefix + 'Type__c'];
         const originalSubType = omniscript[this.namespacePrefix + 'SubType__c'];
 
-        if (!mappedOmniScript[OmniScriptMappings.Type__c] || mappedOmniScript[OmniScriptMappings.Type__c].trim() === '') {
+        if (
+          !mappedOmniScript[OmniScriptMappings.Type__c] ||
+          mappedOmniScript[OmniScriptMappings.Type__c].trim() === ''
+        ) {
           const skippedResponse: UploadRecordResult = {
             referenceId: recordId,
             id: '',
@@ -885,7 +899,10 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
           continue;
         }
 
-        if (!mappedOmniScript[OmniScriptMappings.SubType__c] || mappedOmniScript[OmniScriptMappings.SubType__c].trim() === '') {
+        if (
+          !mappedOmniScript[OmniScriptMappings.SubType__c] ||
+          mappedOmniScript[OmniScriptMappings.SubType__c].trim() === ''
+        ) {
           const skippedResponse: UploadRecordResult = {
             referenceId: recordId,
             id: '',
@@ -1142,8 +1159,9 @@ export class OmniScriptMigrationTool extends BaseMigrationTool implements Migrat
             }
           }
 
-          let finalKey = `${oldrecord[this.namespacePrefix + 'Type__c']}${oldrecord[this.namespacePrefix + 'SubType__c']
-            }${oldrecord[this.namespacePrefix + 'Language__c']}`;
+          let finalKey = `${oldrecord[this.namespacePrefix + 'Type__c']}${
+            oldrecord[this.namespacePrefix + 'SubType__c']
+          }${oldrecord[this.namespacePrefix + 'Language__c']}`;
 
           finalKey = finalKey.toLowerCase();
           if (storage.osStorage.has(finalKey)) {
